@@ -33,32 +33,28 @@ switch (count($options)) {
     case 4:
     case 5:
     case 6: {
-
-        $skipFirst=isset($options['skip-first']);
-        $delimiter=',';
-        if(isset($options['delimiter'])){
-            $delimiter=$options['delimiter'];
+        list($error,$skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename)=argParse($options);
+        if($error!=""){
+            getFileError(); break;
         }
-        $strict=isset($options['strict']);
-
-        $originalFilename = __DIR__ . "/". $options['i'];
         list($error,$encoding, $data) = loadOriginFile($originalFilename,$delimiter);
         if($error!=""){
             getFileError(); break;
         }
 
-        $confFilename = __DIR__ . "/". $options['c'];
         list($error, $funcArray) = loadConfFile($confFilename);
         if($error!=""){
             getFileError(); break;
         }
         $newArray=CreateNewArray($data,$funcArray,$skipFirst);
-        $newFilename = __DIR__ . "/". $options['o'];
+
         $error = saveNewFile($newFilename,$newArray,$encoding,$delimiter);
         if($error!=""){
             getFileError(); break;
         }
+
         echo "Файл был успешно сконвертирован \n";
+
 //        ShowNewArray($newArray);
 //        var_dump($options);
         break;
@@ -67,6 +63,25 @@ switch (count($options)) {
         getParamError();
         break;
 }
+
+function argParse($options){
+    $error="";
+    $skipFirst=isset($options['skip-first']);
+    $delimiter=',';
+    if(isset($options['delimiter'])){
+        $delimiter=$options['delimiter'];
+    }
+    $strict=isset($options['strict']);
+
+    $originalFilename = __DIR__ . "/". $options['i'];
+    $confFilename = __DIR__ . "/". $options['c'];
+    $newFilename = __DIR__ . "/". $options['o'];
+
+    return [$error,$skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename];
+}
+
+
+
 
 function saveNewFile($newFilename,$newArray,$encoding,$delimiter)
 {
@@ -79,7 +94,7 @@ function saveNewFile($newFilename,$newArray,$encoding,$delimiter)
     if(is_file($newFilename)){
         if (($handle = fopen($newFilename, "w")) !== false) {
             foreach ($newArray as $rows) {
-                fwrite($handle, iconv($encoding, "UTF-8", implode($delimiter,$rows)."\n"));
+                fwrite($handle, iconv($encoding, "UTF-8", "\"".implode("\"".$delimiter."\"",$rows)."\"\n"));
             }
             fclose($handle);
         }
@@ -125,7 +140,7 @@ function createNewArray(array $oldFile,array $funcArray,$skipFirst)
     for (; $i < count($oldFile); $i++) {
         $newRow=[];
         for ($j = 0; $j < count($oldFile[$i]); $j++) {
-            $newRow[]=getNewValue($funcArray,$oldFile[$i][$j], $oldFile[$i], $i,$j) . "  ";
+            $newRow[]=getNewValue($funcArray,$oldFile[$i][$j], $oldFile[$i], $i,$j);
         }
         $newArray[]=$newRow;
     }
