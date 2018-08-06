@@ -16,7 +16,7 @@ $longopts  = array(
     "output:",      // параметр пути до файла с результатом
     "delimiter:",   // разделитель
     "skip-first",   // пропускать редактирование первой строки
-    "trict",        // проверка соответсвия столбцов в исходном файле и файле конфигурации
+    "strict",        // проверка соответсвия столбцов в исходном файле и файле конфигурации
     "help",         // справка
 );
 $options = getopt($shortopts, $longopts);
@@ -37,6 +37,7 @@ switch (count($options)) {
         if(!empty($error)){
             getParamsError($error); break;
         }
+
         list($error,$encoding, $data) = loadOriginFile($originalFilename,$delimiter);
         if(!empty($error)){
             getFileError(); break;
@@ -46,6 +47,12 @@ switch (count($options)) {
         if(!empty($error)){
             getFileError(); break;
         }
+
+        $error = testStrict($data,$funcArray);
+        if(!empty($error)){
+            getCustomError($error); break;
+        }
+
         $newArray=CreateNewArray($data,$funcArray,$skipFirst);
 
         $error = saveNewFile($newFilename,$newArray,$encoding,$delimiter);
@@ -54,7 +61,7 @@ switch (count($options)) {
         }
 
         echo "Файл был успешно сконвертирован \n";
-
+        return 0;
 //        ShowNewArray($newArray);
 //        var_dump($options);
         break;
@@ -83,36 +90,45 @@ function argParse($options){
         if(isset($options['i'])) {
             $error[]="попытка задать входной файл передав две опции";
         } else {
-            $originalFilename = __DIR__ . "/". $options['input'];
+            $originalFilename = $options['input'];
         }
     } else if(isset($options['i'])) {
-        $originalFilename = __DIR__ . "/". $options['i'];
+        $originalFilename = $options['i'];
     }
     if(isset($options['config'])){
         if(isset($options['с'])) {
             $error[]="попытка задать файл конфигурации передав две опции";
         } else {
-            $confFilename = __DIR__ . "/". $options['config'];
+            $confFilename = $options['config'];
         }
     } else if(isset($options['c'])) {
-        $confFilename = __DIR__ . "/". $options['c'];
+        $confFilename = $options['c'];
     }
     if(isset($options['output'])){
         if(isset($options['o'])) {
             $error[]="попытка задать выходной файл передав две опции";
         } else {
-            $newFilename = __DIR__ . "/". $options['output'];
+            $newFilename = $options['output'];
         }
     } else if(isset($options['o'])) {
-        var_dump($options);
-        $newFilename = __DIR__ . "/". $options['o'];
+        $newFilename = $options['o'];
 
     }
 
     return [$error,$skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename];
 }
 
+function testStrict($data,$funcArray){
+    $keys = array_keys($funcArray);
+    $max = max($keys);
+    if(count($data)>=$max){
+        return [];
+    } else {
+        return ['количество столбцов исходного файла не соответсвует требуемому для конвертаци'
+        , 'проверьте исходный файл и файл конфигурации'];
+    }
 
+}
 
 
 function saveNewFile($newFilename,$newArray,$encoding,$delimiter)
@@ -258,6 +274,11 @@ function getParamsError($errors){
         echo $error."\n";
     }
     echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
+}
+function getCustomError($errors){
+    foreach ($errors as $error){
+        echo $error."\n";
+    }
 }
 
 function getFileError(){
