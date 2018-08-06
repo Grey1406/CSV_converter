@@ -2,9 +2,156 @@
 <?php
 require_once __DIR__. '/vendor/autoload.php';
 
-$faker = Faker\Factory::create();
 echo "CSV converter , made by Grey\n";
 
-for ($i=0; $i < 10; $i++) {
-    echo $faker->name, "\n";
+$shortopts  = "i:"; // параметр пути до исходного файла
+$shortopts .= "c:"; // параметр пути до файла конфигурации
+$shortopts .= "o:"; // параметр пути до файла с результатом
+$shortopts .= "d:"; // разделитель
+$shortopts .= "h"; // справка
+
+$longopts  = array(
+    "input:",     // параметр пути до исходного файла
+    "config:",     // параметр пути до файла конфигурации
+    "output:",     // параметр пути до файла с результатом
+    "delimiter:",    // разделитель
+    "skip-first",    // пропускать редактирование первой строки
+    "trict",        // проверка соответсвия столбцов в исходном файле и файле конфигурации
+    "help",           // справка
+);
+$options = getopt($shortopts, $longopts);
+
+switch (count($options)) {
+    case 1:
+        if(isset($options['h'])){
+            echo getReference();
+        } else {
+            getParamError();
+        }
+        break;
+    case 3:
+    case 4:
+    case 5:
+    case 6: {
+
+        $originalFilename = __DIR__ . "/". $options['i'];
+        list($error, $data) = loadFile($originalFilename);
+        if($error!=""){
+            getFileError(); break;
+        }
+
+        $confFilename = __DIR__ . "/". $options['c'];
+        list($error, $funcArray) = loadConfFile($confFilename);
+        if($error!=""){
+            getFileError(); break;
+        }
+
+        $newArray=CreateNewArray($data,$funcArray);
+//        $outputFilename = __DIR__ . "/". $options['c'];
+//        list($error, $funcArray) = loadConfFile($confFilename);
+//        if($error!=""){
+//            getFileError(); break;
+//        }
+
+        ShowNewFile($newArray);
+        var_dump($options);
+        break;
+    }
+    default:
+        getParamError();
+        break;
+}
+
+function loadConfFile($confFilename)
+{
+    $error="";
+    $funcArray="";
+    if(is_file($confFilename)) {
+        $funcArray = include $confFilename;
+    }else {
+        $error = 'передан не файл или файл не существует';
+    }
+    return [$error,$funcArray];
+}
+
+
+function ShowNewFile(array $newFile)
+{
+    foreach ($newFile AS $row){
+        foreach ($row AS $value){
+            echo $value . "  ";
+        }
+        echo  " \n ";
+    }
+    echo "\n";
+}
+
+function CreateNewArray(array $oldFile,array $funcArray)
+{
+    $newArray=[];
+    for ($i = 0; $i < count($oldFile); $i++) {
+        $newRow=[];
+        for ($j = 0; $j < count($oldFile[$i]); $j++) {
+            $newRow[]=getNewValue($funcArray,$oldFile[$i][$j], $oldFile[$i], $i,$j) . "  ";
+        }
+        $newArray[]=$newRow;
+    }
+    return $newArray;
+}
+
+function getNewValue($funcArray,$value, $rowData, $rowIndex, $columnIndex){
+    if(!isset($funcArray[$columnIndex])){
+        return $value;
+        }
+    if(is_callable($funcArray[$columnIndex])) {
+        $faker = Faker\Factory::create();
+        return $funcArray[$columnIndex]($value, $rowData, $rowIndex, $faker);
+    }
+    try{
+        $faker = Faker\Factory::create();
+        $funcName=$funcArray[$columnIndex];
+        if(is_string($faker->$funcName)){
+            $str=$faker->$funcName;
+            return $str;
+        }
+    } catch (Exception $e) {
+        return $funcArray[$columnIndex];
+    }
+
+
+    return $value;
+}
+
+function loadFile($originalFilename)
+{
+    $error="";
+    $arrayCSV=[];
+    if(is_file($originalFilename)){
+        if (($handle = fopen($originalFilename, "r")) !== false) {
+            while (($data = fgetcsv($handle, 0, ",")) !== false) {
+                $arrayCSV[] = $data;
+            }
+            fclose($handle);
+        }
+    } else {
+        $error = 'передан не файл или файл не существует';
+    }
+    return [$error,$arrayCSV];
+}
+
+function getReference(){
+    $reference="";
+    return  $reference;
+}
+
+function getParamError(){
+    echo " \n";
+    echo "Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой \n";
+    echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
+}
+
+function getFileError(){
+    echo " \n";
+    echo "Ошибка файла, неудалось прочитать один из файлов, воспользуйтесь справкой \n";
+    echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
 }
