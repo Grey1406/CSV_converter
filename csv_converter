@@ -34,8 +34,15 @@ switch (count($options)) {
     case 5:
     case 6: {
 
+        $skipFirst=isset($options['skip-first']);
+        $delimiter=',';
+        if(isset($options['delimiter'])){
+            $delimiter=$options['delimiter'];
+        }
+        $strict=isset($options['strict']);
+
         $originalFilename = __DIR__ . "/". $options['i'];
-        list($error, $data) = loadFile($originalFilename);
+        list($error,$encoding, $data) = loadOriginFile($originalFilename,$delimiter);
         if($error!=""){
             getFileError(); break;
         }
@@ -45,16 +52,15 @@ switch (count($options)) {
         if($error!=""){
             getFileError(); break;
         }
-
-        $newArray=CreateNewArray($data,$funcArray);
-//        $outputFilename = __DIR__ . "/". $options['c'];
-//        list($error, $funcArray) = loadConfFile($confFilename);
-//        if($error!=""){
-//            getFileError(); break;
-//        }
-
-        ShowNewFile($newArray);
-        var_dump($options);
+        $newArray=CreateNewArray($data,$funcArray,$skipFirst);
+        $newFilename = __DIR__ . "/". $options['o'];
+        $error = saveNewFile($newFilename,$newArray,$encoding,$delimiter);
+        if($error!=""){
+            getFileError(); break;
+        }
+        echo "Файл был успешно сконвертирован \n";
+//        ShowNewArray($newArray);
+//        var_dump($options);
         break;
     }
     default:
@@ -62,20 +68,43 @@ switch (count($options)) {
         break;
 }
 
+function saveNewFile($newFilename,$newArray,$encoding,$delimiter)
+{
+    if (!file_exists($newFilename)) {
+        $fp = fopen($newFilename, "w");
+        fwrite($fp, "Значение, то что будет в файле");
+        fclose($fp);
+    }
+    $error="";
+    if(is_file($newFilename)){
+        if (($handle = fopen($newFilename, "w")) !== false) {
+            foreach ($newArray as $rows) {
+                fwrite($handle, iconv($encoding, "UTF-8", implode($delimiter,$rows)."\n"));
+            }
+            fclose($handle);
+        }
+    } else {
+        $error = 'передан не файл или файл не существует';
+    }
+    return $error;
+
+
+
+}
+
 function loadConfFile($confFilename)
 {
     $error="";
     $funcArray="";
     if(is_file($confFilename)) {
-        $funcArray = include $confFilename;
+        $funcArray = require_once $confFilename;
     }else {
         $error = 'передан не файл или файл не существует';
     }
     return [$error,$funcArray];
 }
 
-
-function ShowNewFile(array $newFile)
+function showNewArray(array $newFile)
 {
     foreach ($newFile AS $row){
         foreach ($row AS $value){
@@ -86,10 +115,14 @@ function ShowNewFile(array $newFile)
     echo "\n";
 }
 
-function CreateNewArray(array $oldFile,array $funcArray)
+function createNewArray(array $oldFile,array $funcArray,$skipFirst)
 {
     $newArray=[];
-    for ($i = 0; $i < count($oldFile); $i++) {
+    $i=0;
+    if($skipFirst){
+        $i=1;
+    }
+    for (; $i < count($oldFile); $i++) {
         $newRow=[];
         for ($j = 0; $j < count($oldFile[$i]); $j++) {
             $newRow[]=getNewValue($funcArray,$oldFile[$i][$j], $oldFile[$i], $i,$j) . "  ";
@@ -122,13 +155,17 @@ function getNewValue($funcArray,$value, $rowData, $rowIndex, $columnIndex){
     return $value;
 }
 
-function loadFile($originalFilename)
+function loadOriginFile($originalFilename,$delimiter)
 {
     $error="";
     $arrayCSV=[];
+    $encoding= "";
     if(is_file($originalFilename)){
         if (($handle = fopen($originalFilename, "r")) !== false) {
-            while (($data = fgetcsv($handle, 0, ",")) !== false) {
+            while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
+                if($encoding==""){
+                    $encoding= mb_detect_encoding(implode("",$data));
+                }
                 $arrayCSV[] = $data;
             }
             fclose($handle);
@@ -136,7 +173,7 @@ function loadFile($originalFilename)
     } else {
         $error = 'передан не файл или файл не существует';
     }
-    return [$error,$arrayCSV];
+    return [$error,$encoding,$arrayCSV];
 }
 
 function getReference(){
@@ -152,6 +189,6 @@ function getParamError(){
 
 function getFileError(){
     echo " \n";
-    echo "Ошибка файла, неудалось прочитать один из файлов, воспользуйтесь справкой \n";
+    echo "Ошибка файла, не удалось прочитать один из файлов, воспользуйтесь справкой \n";
     echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
 }
