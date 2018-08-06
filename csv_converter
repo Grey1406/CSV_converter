@@ -8,22 +8,22 @@ $shortopts  = "i:"; // параметр пути до исходного фай�
 $shortopts .= "c:"; // параметр пути до файла конфигурации
 $shortopts .= "o:"; // параметр пути до файла с результатом
 $shortopts .= "d:"; // разделитель
-$shortopts .= "h"; // справка
+$shortopts .= "h";  // справка
 
 $longopts  = array(
-    "input:",     // параметр пути до исходного файла
-    "config:",     // параметр пути до файла конфигурации
-    "output:",     // параметр пути до файла с результатом
-    "delimiter:",    // разделитель
-    "skip-first",    // пропускать редактирование первой строки
+    "input:",       // параметр пути до исходного файла
+    "config:",      // параметр пути до файла конфигурации
+    "output:",      // параметр пути до файла с результатом
+    "delimiter:",   // разделитель
+    "skip-first",   // пропускать редактирование первой строки
     "trict",        // проверка соответсвия столбцов в исходном файле и файле конфигурации
-    "help",           // справка
+    "help",         // справка
 );
 $options = getopt($shortopts, $longopts);
 
 switch (count($options)) {
     case 1:
-        if(isset($options['h'])){
+        if(isset($options['h'])|isset($options['help'])){
             echo getReference();
         } else {
             getParamError();
@@ -34,22 +34,22 @@ switch (count($options)) {
     case 5:
     case 6: {
         list($error,$skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename)=argParse($options);
-        if($error!=""){
-            getFileError(); break;
+        if(!empty($error)){
+            getParamsError($error); break;
         }
         list($error,$encoding, $data) = loadOriginFile($originalFilename,$delimiter);
-        if($error!=""){
+        if(!empty($error)){
             getFileError(); break;
         }
 
         list($error, $funcArray) = loadConfFile($confFilename);
-        if($error!=""){
+        if(!empty($error)){
             getFileError(); break;
         }
         $newArray=CreateNewArray($data,$funcArray,$skipFirst);
 
         $error = saveNewFile($newFilename,$newArray,$encoding,$delimiter);
-        if($error!=""){
+        if(!empty($error)){
             getFileError(); break;
         }
 
@@ -65,17 +65,49 @@ switch (count($options)) {
 }
 
 function argParse($options){
-    $error="";
+    $error=[];
     $skipFirst=isset($options['skip-first']);
     $delimiter=',';
     if(isset($options['delimiter'])){
-        $delimiter=$options['delimiter'];
+        if(isset($options['d'])) {
+            $error[]="попытка задать делитель передав две опции";
+        } else {
+            $delimiter=$options['delimiter'];
+        }
+    } else if(isset($options['d'])) {
+        $delimiter=$options['d'];
     }
     $strict=isset($options['strict']);
 
-    $originalFilename = __DIR__ . "/". $options['i'];
-    $confFilename = __DIR__ . "/". $options['c'];
-    $newFilename = __DIR__ . "/". $options['o'];
+    if(isset($options['input'])){
+        if(isset($options['i'])) {
+            $error[]="попытка задать входной файл передав две опции";
+        } else {
+            $originalFilename = __DIR__ . "/". $options['input'];
+        }
+    } else if(isset($options['i'])) {
+        $originalFilename = __DIR__ . "/". $options['i'];
+    }
+    if(isset($options['config'])){
+        if(isset($options['с'])) {
+            $error[]="попытка задать файл конфигурации передав две опции";
+        } else {
+            $confFilename = __DIR__ . "/". $options['config'];
+        }
+    } else if(isset($options['c'])) {
+        $confFilename = __DIR__ . "/". $options['c'];
+    }
+    if(isset($options['output'])){
+        if(isset($options['o'])) {
+            $error[]="попытка задать выходной файл передав две опции";
+        } else {
+            $newFilename = __DIR__ . "/". $options['output'];
+        }
+    } else if(isset($options['o'])) {
+        var_dump($options);
+        $newFilename = __DIR__ . "/". $options['o'];
+
+    }
 
     return [$error,$skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename];
 }
@@ -90,7 +122,7 @@ function saveNewFile($newFilename,$newArray,$encoding,$delimiter)
         fwrite($fp, "Значение, то что будет в файле");
         fclose($fp);
     }
-    $error="";
+    $error=[];
     if(is_file($newFilename)){
         if (($handle = fopen($newFilename, "w")) !== false) {
             foreach ($newArray as $rows) {
@@ -109,7 +141,7 @@ function saveNewFile($newFilename,$newArray,$encoding,$delimiter)
 
 function loadConfFile($confFilename)
 {
-    $error="";
+    $error=[];
     $funcArray="";
     if(is_file($confFilename)) {
         $funcArray = require_once $confFilename;
@@ -172,7 +204,7 @@ function getNewValue($funcArray,$value, $rowData, $rowIndex, $columnIndex){
 
 function loadOriginFile($originalFilename,$delimiter)
 {
-    $error="";
+    $error=[];
     $arrayCSV=[];
     $encoding= "";
     if(is_file($originalFilename)){
@@ -193,12 +225,38 @@ function loadOriginFile($originalFilename,$delimiter)
 
 function getReference(){
     $reference="";
+    $reference.="\n";
+    $reference.="Usage:\n";
+    $reference.="  csv_converter --help \n";
+    $reference.="  csv_converter -i imput_file_path -c confiration_file_path -o output_file_path\n";
+    $reference.="  csv_converter -i imput_file_path -c confiration_file_path -o output_file_path [-d \",\"]\n";
+    $reference.="  csv_converter -i imput_file_path -c confiration_file_path -o output_file_path [--skip-first]\n";
+    $reference.="  csv_converter -i imput_file_path -c confiration_file_path -o output_file_path [--strict]\n";
+    $reference.="\n";
+    $reference.="Options:\n";
+    $reference.="  -h --help                                Show this screen.\n";
+    $reference.="  -i | --imput      imput_file_path        Path to imput csv file.\n";
+    $reference.="  -c | --config     confiration_file_path  Path to configuration .php file.\n";
+    $reference.="  -o | --output     output_file_path       Path to output csv file.\n";
+    $reference.="  -d | --delimiter  delim                  Change standart delimeter for csv files.\n";
+    $reference.="  --skip-first                             Skip the first row as a header\n";
+    $reference.="  --strict                                 Verify that the source file contains the 
+    required number of columns described in the configuration file.\n";
+
     return  $reference;
 }
 
 function getParamError(){
     echo " \n";
     echo "Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой \n";
+    echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
+}
+function getParamsError($errors){
+    echo " \n";
+    echo "Ошибка параметра, произошли следующие ошибки:\n";
+    foreach ($errors as $error){
+        echo $error."\n";
+    }
     echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
 }
 
