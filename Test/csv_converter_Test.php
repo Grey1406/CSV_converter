@@ -70,9 +70,6 @@ final class csv_converterTest extends TestCase
 
     public function testMustReturnFailsWithNotReadableFile()
     {
-        exec('php csv_converter -i "Test/notReadableCSV.csv" -c Test/notChangedConf.php -o Test/output.csv', $output,
-            $lastStr);
-        $this->assertNotEquals('0', $lastStr);
         exec('php csv_converter -i "Test/testCSV1.csv" -c Test/notChangedConf.php -o "Test/notReadableCSV.csv"',
             $output, $lastStr);
         $this->assertNotEquals('0', $lastStr);
