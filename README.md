@@ -27,3 +27,9 @@
 
     php csv_converter -h
 
+5: для ознакомления с результатом работы прогррамы существуют файлы example.csv и confExample.php
+Запустить программу можно командой:
+
+    php csv_converter -i "example.csv" -c confExample.php -o output.csv
+
+После её выполнения будет создан|перезаписал файл output.csv с результатом выполнения конвертации
