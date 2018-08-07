@@ -43,6 +43,8 @@ final class csv_converterTest extends TestCase
                     while ((($data = fgetcsv($handle, 0)) !== false) &&
                         (($data2 = fgetcsv($handle2, 0)) !== false)) {
                         if (!empty(array_diff($data, $data2))) {
+                            var_dump(implode("",$data));
+                            var_dump(implode("",$data2));
                             $isEqual = false;
                         }
                     }
@@ -75,7 +77,7 @@ final class csv_converterTest extends TestCase
         $this->assertNotEquals('0', $lastStr);
     }
 
-    public function testMustReturnFileInSomeEncodingAsInputFileCURRENTNOTWORK()
+    public function testMustReturnFileInSomeEncodingAsInputFile()
     {
         $value1=file_get_contents("Test/testCSV1.csv");
         $encoding1 = mb_detect_encoding($value1);
@@ -84,12 +86,12 @@ final class csv_converterTest extends TestCase
         $encoding2 = mb_detect_encoding($value2);
         $this->assertEquals($encoding1, $encoding2);
 
-//        $value1=file_get_contents("Test/Windows-1251.csv");
-//        $encoding1 = mb_detect_encoding($value1, array('UTF-8', 'Windows-1251'));
-//        exec('php csv_converter -i "Test/Windows-1251.csv" -c Test/notChangedConf.php -o Test/output.csv', $output,$lastStr);
-//        $value2=file_get_contents("Test/output.csv");
-//        $encoding2 = mb_detect_encoding($value2);
-//        $this->assertEquals($encoding1, $encoding2);
+        $value1=file_get_contents("Test/Windows-1251.csv");
+        $isUTFEncoding1 = mb_check_encoding($value1,'UTF-8');
+        exec('php csv_converter -i "Test/Windows-1251.csv" -c Test/notChangedConf.php -o Test/output.csv', $output,$lastStr);
+        $value2=file_get_contents("Test/output.csv");
+        $isUTFEncoding2 = mb_check_encoding($value2,'UTF-8');
+        $this->assertEquals($isUTFEncoding1, $isUTFEncoding2);
     }
 }
 

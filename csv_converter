@@ -21,8 +21,6 @@ $longopts  = array(
 );
 $options = getopt($shortopts, $longopts);
 
-
-
 switch (count($options)) {
     case 1:
         if(isset($options['h'])|isset($options['help'])){
@@ -56,7 +54,7 @@ switch (count($options)) {
 
         $newArray=CreateNewArray($data,$funcArray,$skipFirst);
 
-        $error = saveNewFile($newFilename,$newArray,$encoding,$delimiter);
+        $error = saveNewFile($newFilename,$newArray,$delimiter);
         if(!empty($error)){
             getFileError($error);
         }
@@ -130,7 +128,7 @@ function testStrict($data,$funcArray){
 }
 
 
-function saveNewFile($newFilename,$newArray,$encoding,$delimiter)
+function saveNewFile($newFilename,$newArray,$delimiter)
 {
     if (!file_exists($newFilename)) {
         $fp = fopen($newFilename, "w"); // ("r" - считывать "w" - создавать "a" - добовлять к тексту),мы создаем файл
@@ -142,8 +140,15 @@ function saveNewFile($newFilename,$newArray,$encoding,$delimiter)
     if(is_writable($newFilename)){
         if (($handle = fopen($newFilename, "w")) !== false) {
             foreach ($newArray as $row) {
-                $inputEncoding=mb_detect_encoding(implode("", $row));
-                fwrite($handle, iconv($inputEncoding, $encoding, "\"".implode("\"".$delimiter."\"",$row)."\"\n"));
+                $str="\"".implode("\"".$delimiter."\"",$row)."\"\n";
+                if(mb_check_encoding(implode("", $row),'UTF-8')){
+                    fwrite($handle,$str );
+                } else {
+                    $str=iconv('Windows-1251','UTF-8',$str);
+                    $newStr=mb_convert_encoding($str,'Windows-1251');
+                    fwrite($handle, $newStr);
+                }
+
             }
             fclose($handle);
         }
@@ -151,8 +156,6 @@ function saveNewFile($newFilename,$newArray,$encoding,$delimiter)
         $error[] = 'файл не доступен для записи';
     }
     return $error;
-
-
 
 }
 
@@ -233,7 +236,11 @@ function loadOriginFile($originalFilename,$delimiter)
             if (($handle = fopen($originalFilename, "r")) !== false) {
                 while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
                     if ($encoding == "") {
-                        $encoding = mb_detect_encoding(implode("", $data));
+                        if(mb_check_encoding(implode("", $data),'UTF-8')){
+                            $encoding = 'UTF-8';
+                        } else {
+                            $encoding = 'Windows-1251';
+                        }
                     }
                     $arrayCSV[] = $data;
                 }
@@ -250,21 +257,20 @@ function getReference(){
     $reference.="\n";
     $reference.="Usage:\n";
     $reference.="  csv_converter --help \n";
-    $reference.="  csv_converter -i imput_file_path -c confiration_file_path -o output_file_path\n";
-    $reference.="  csv_converter -i imput_file_path -c confiration_file_path -o output_file_path [-d \",\"]\n";
-    $reference.="  csv_converter -i imput_file_path -c confiration_file_path -o output_file_path [--skip-first]\n";
-    $reference.="  csv_converter -i imput_file_path -c confiration_file_path -o output_file_path [--strict]\n";
+    $reference.="  csv_converter -i input_file_path -c configuration_file_path -o output_file_path\n";
+    $reference.="  csv_converter -i input_file_path -c configuration_file_path -o output_file_path [-d \",\"]\n";
+    $reference.="  csv_converter -i input_file_path -c configuration_file_path -o output_file_path [--skip-first]\n";
+    $reference.="  csv_converter -i input_file_path -c configuration_file_path -o output_file_path [--strict]\n";
     $reference.="\n";
     $reference.="Options:\n";
-    $reference.="  -h --help                                Show this screen.\n";
-    $reference.="  -i | --imput      imput_file_path        Path to imput csv file.\n";
-    $reference.="  -c | --config     confiration_file_path  Path to configuration .php file.\n";
-    $reference.="  -o | --output     output_file_path       Path to output csv file.\n";
-    $reference.="  -d | --delimiter  delim                  Change standart delimeter for csv files.\n";
-    $reference.="  --skip-first                             Skip the first row as a header\n";
-    $reference.="  --strict                                 Verify that the source file contains the 
-    required number of columns described in the configuration file.\n";
-
+    $reference.="  -h --help                                    Show this screen.\n";
+    $reference.="  -i | --imput      input_file_path            Path to imput csv file.\n";
+    $reference.="  -c | --config     configuration_file_path    Path to configuration .php file.\n";
+    $reference.="  -o | --output     output_file_path           Path to output csv file.\n";
+    $reference.="  -d | --delimiter  delimiter                  Change standard delimiter for csv files.\n";
+    $reference.="  --skip-first                                 Skip the first row as a header\n";
+    $reference.="  --strict                                     Verify that the source file contains the ";
+    $reference.=" required number of columns described in the configuration file.\n";
     echo  $reference;
     exit(0);
 }
@@ -275,6 +281,7 @@ function getParamError(){
     echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
     exit(1);
 }
+
 function getParamsError($errors){
     echo " \n";
     echo "Ошибка параметра, произошли следующие ошибки:\n";
@@ -284,6 +291,7 @@ function getParamsError($errors){
     echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
     exit(1);
 }
+
 function getCustomError($errors){
     foreach ($errors as $error){
         echo $error."\n";
