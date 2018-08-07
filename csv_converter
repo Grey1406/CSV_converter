@@ -21,54 +21,51 @@ $longopts  = array(
 );
 $options = getopt($shortopts, $longopts);
 
+
+
 switch (count($options)) {
     case 1:
         if(isset($options['h'])|isset($options['help'])){
-            echo getReference();
+            getReference();
         } else {
             getParamError();
-        }
-        break;
+        }   break;
     case 3:
     case 4:
     case 5:
     case 6: {
         list($error,$skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename)=argParse($options);
         if(!empty($error)){
-            getParamsError($error); break;
+            getParamsError($error);
         }
 
         list($error,$encoding, $data) = loadOriginFile($originalFilename,$delimiter);
         if(!empty($error)){
-            getFileError(); break;
+            getFileError($error);
         }
 
         list($error, $funcArray) = loadConfFile($confFilename);
         if(!empty($error)){
-            getFileError(); break;
+            getFileError($error);
         }
 
         $error = testStrict($data,$funcArray);
         if(!empty($error)){
-            getCustomError($error); break;
+            getCustomError($error);
         }
 
         $newArray=CreateNewArray($data,$funcArray,$skipFirst);
 
         $error = saveNewFile($newFilename,$newArray,$encoding,$delimiter);
         if(!empty($error)){
-            getFileError(); break;
+            getFileError($error);
         }
 
         echo "Файл был успешно сконвертирован \n";
-        return 0;
-//        ShowNewArray($newArray);
-//        var_dump($options);
-        break;
+        exit(0);
     }
     default:
         getParamError();
-        break;
 }
 
 function argParse($options){
@@ -85,7 +82,9 @@ function argParse($options){
         $delimiter=$options['d'];
     }
     $strict=isset($options['strict']);
-
+    $originalFilename='';
+    $confFilename='';
+    $newFilename='';
     if(isset($options['input'])){
         if(isset($options['i'])) {
             $error[]="попытка задать входной файл передав две опции";
@@ -134,20 +133,22 @@ function testStrict($data,$funcArray){
 function saveNewFile($newFilename,$newArray,$encoding,$delimiter)
 {
     if (!file_exists($newFilename)) {
-        $fp = fopen($newFilename, "w");
+        $fp = fopen($newFilename, "w"); // ("r" - считывать "w" - создавать "a" - добовлять к тексту),мы создаем файл
         fwrite($fp, "Значение, то что будет в файле");
         fclose($fp);
     }
+
     $error=[];
-    if(is_file($newFilename)){
+    if(is_writable($newFilename)){
         if (($handle = fopen($newFilename, "w")) !== false) {
-            foreach ($newArray as $rows) {
-                fwrite($handle, iconv($encoding, "UTF-8", "\"".implode("\"".$delimiter."\"",$rows)."\"\n"));
+            foreach ($newArray as $row) {
+                $inputEncoding=mb_detect_encoding(implode("", $row));
+                fwrite($handle, iconv($inputEncoding, $encoding, "\"".implode("\"".$delimiter."\"",$row)."\"\n"));
             }
             fclose($handle);
         }
     } else {
-        $error = 'передан не файл или файл не существует';
+        $error[] = 'файл не доступен для записи';
     }
     return $error;
 
@@ -159,23 +160,27 @@ function loadConfFile($confFilename)
 {
     $error=[];
     $funcArray="";
-    if(is_file($confFilename)) {
-        $funcArray = require_once $confFilename;
-    }else {
-        $error = 'передан не файл или файл не существует';
+    if(!is_file($confFilename)) {
+        $error[] = 'передан не файл или файл не существует';
+        return [$error,$funcArray];
+    }
+    $info = new SplFileInfo($confFilename);
+    if($info->getExtension()!='php'){
+        $error[] = 'переданный файл не является файлом php';
+        return [$error,$funcArray];
+    }
+    if(is_readable($confFilename)) {
+        $funcArray = include $confFilename;
+    }
+    else {
+        $error[] = 'файл не существует или не доступен для чтения';
+    }
+    if(!is_array($funcArray)){
+        $error[] = 'переданный файл не содержит массив с инструкциями';
+        return [$error,$funcArray];
     }
     return [$error,$funcArray];
-}
 
-function showNewArray(array $newFile)
-{
-    foreach ($newFile AS $row){
-        foreach ($row AS $value){
-            echo $value . "  ";
-        }
-        echo  " \n ";
-    }
-    echo "\n";
 }
 
 function createNewArray(array $oldFile,array $funcArray,$skipFirst)
@@ -196,6 +201,7 @@ function createNewArray(array $oldFile,array $funcArray,$skipFirst)
 }
 
 function getNewValue($funcArray,$value, $rowData, $rowIndex, $columnIndex){
+
     if(!isset($funcArray[$columnIndex])){
         return $value;
         }
@@ -223,18 +229,18 @@ function loadOriginFile($originalFilename,$delimiter)
     $error=[];
     $arrayCSV=[];
     $encoding= "";
-    if(is_file($originalFilename)){
-        if (($handle = fopen($originalFilename, "r")) !== false) {
-            while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
-                if($encoding==""){
-                    $encoding= mb_detect_encoding(implode("",$data));
+    if(is_readable($originalFilename)){
+            if (($handle = fopen($originalFilename, "r")) !== false) {
+                while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
+                    if ($encoding == "") {
+                        $encoding = mb_detect_encoding(implode("", $data));
+                    }
+                    $arrayCSV[] = $data;
                 }
-                $arrayCSV[] = $data;
+                fclose($handle);
             }
-            fclose($handle);
-        }
     } else {
-        $error = 'передан не файл или файл не существует';
+        $error[] = 'файл не существует или не доступен для чтения';
     }
     return [$error,$encoding,$arrayCSV];
 }
@@ -259,13 +265,15 @@ function getReference(){
     $reference.="  --strict                                 Verify that the source file contains the 
     required number of columns described in the configuration file.\n";
 
-    return  $reference;
+    echo  $reference;
+    exit(0);
 }
 
 function getParamError(){
     echo " \n";
     echo "Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой \n";
     echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
+    exit(1);
 }
 function getParamsError($errors){
     echo " \n";
@@ -274,15 +282,21 @@ function getParamsError($errors){
         echo $error."\n";
     }
     echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
+    exit(1);
 }
 function getCustomError($errors){
     foreach ($errors as $error){
         echo $error."\n";
     }
+    exit(1);
 }
 
-function getFileError(){
+function getFileError($errors){
     echo " \n";
-    echo "Ошибка файла, не удалось прочитать один из файлов, воспользуйтесь справкой \n";
+    echo "Ошибка файла, произошли следующие ошибки:\n";
+    foreach ($errors as $error){
+        echo $error."\n";
+    }
     echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
+    exit(1);
 }
