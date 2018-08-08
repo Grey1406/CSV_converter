@@ -46,8 +46,6 @@ final class csv_converterTest extends TestCase
                     while ((($data = fgetcsv($handle, 0)) !== false) &&
                         (($data2 = fgetcsv($handle2, 0)) !== false)) {
                         if (!empty(array_diff($data, $data2))) {
-                            var_dump(implode("",$data));
-                            var_dump(implode("",$data2));
                             $isEqual = false;
                         }
                     }
@@ -95,6 +93,9 @@ final class csv_converterTest extends TestCase
         $value2=file_get_contents('Test/output.csv');
         $isUTFEncoding2 = mb_check_encoding($value2,'UTF-8');
         $this->assertEquals($isUTFEncoding1, $isUTFEncoding2);
+
+        exec('php '.$this->programName.' -i Test/Windows-1251.csv -c Test/notChangedConf.php -o Test/output.csv', $output,$lastStr);
+        $this->assertTrue(isThisTwoCSVFilesEquals("Test/Windows-1251.csv", "Test/output.csv"));
     }
 }
 

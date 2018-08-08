@@ -36,29 +36,23 @@ switch (count($options)) {
         if(!empty($error)){
             getParamsError($error);
         }
-
         list($error,$encoding, $data) = loadOriginFile($originalFilename,$delimiter);
         if(!empty($error)){
             getFileError($error);
         }
-
         list($error, $funcArray) = loadConfFile($confFilename);
         if(!empty($error)){
             getFileError($error);
         }
-
         $error = testStrict($data,$funcArray);
         if(!empty($error)){
             getCustomError($error);
         }
-
         $newArray=CreateNewArray($data,$funcArray,$skipFirst);
-
         $error = saveNewFile($newFilename,$newArray,$delimiter);
         if(!empty($error)){
             getFileError($error);
         }
-
         echo "Файл был успешно сконвертирован \n";
         exit(0);
     }
@@ -124,23 +118,28 @@ function testStrict($data,$funcArray){
         return ['количество столбцов исходного файла не соответсвует требуемому для конвертаци'
         , 'проверьте исходный файл и файл конфигурации'];
     }
-
 }
-
 
 function saveNewFile($newFilename,$newArray,$delimiter)
 {
+    $error=[];
     if (!file_exists($newFilename)) {
         $fp = fopen($newFilename, "w"); // ("r" - считывать "w" - создавать "a" - добовлять к тексту),мы создаем файл
         fwrite($fp, "Значение, то что будет в файле");
         fclose($fp);
+    } else if(is_writable($newFilename)) {
+        file_put_contents($newFilename,"");
+    } else {
+        $error[] = 'файл не доступен для записи';
+        return $error;
     }
-
-    $error=[];
-    if(is_writable($newFilename)){
-        if (($handle = fopen($newFilename, "w")) !== false) {
-            foreach ($newArray as $row) {
-                $str="\"".implode("\"".$delimiter."\"",$row)."\"\n";
+        if (($handle = fopen($newFilename, "w+")) !== false) {
+            foreach ($newArray as $key=>$row) {
+                if($key==0){
+                    $str="\"".implode("\"".$delimiter."\"",$row)."\"";
+                } else {
+                    $str="\n\"".implode("\"".$delimiter."\"",$row)."\"";
+                }
                 if(mb_check_encoding(implode("", $row),'UTF-8')){
                     fwrite($handle,$str );
                 } else {
@@ -148,15 +147,10 @@ function saveNewFile($newFilename,$newArray,$delimiter)
                     $newStr=mb_convert_encoding($str,'Windows-1251');
                     fwrite($handle, $newStr);
                 }
-
             }
             fclose($handle);
         }
-    } else {
-        $error[] = 'файл не доступен для записи';
-    }
     return $error;
-
 }
 
 function loadConfFile($confFilename)
@@ -167,23 +161,18 @@ function loadConfFile($confFilename)
         $error[] = 'передан не файл или файл не существует';
         return [$error,$funcArray];
     }
-    $info = new SplFileInfo($confFilename);
-    if($info->getExtension()!='php'){
-        $error[] = 'переданный файл не является файлом php';
-        return [$error,$funcArray];
-    }
     if(is_readable($confFilename)) {
+        ob_start();
         $funcArray = include $confFilename;
+        ob_end_clean();
     }
     else {
         $error[] = 'файл не существует или не доступен для чтения';
     }
     if(!is_array($funcArray)){
         $error[] = 'переданный файл не содержит массив с инструкциями';
-        return [$error,$funcArray];
     }
     return [$error,$funcArray];
-
 }
 
 function createNewArray(array $oldFile,array $funcArray,$skipFirst)
@@ -222,8 +211,6 @@ function getNewValue($funcArray,$value, $rowData, $rowIndex, $columnIndex){
     } catch (Exception $e) {
         return $funcArray[$columnIndex];
     }
-
-
     return $value;
 }
 
