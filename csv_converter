@@ -2,22 +2,22 @@
 <?php
 require_once __DIR__. '/vendor/autoload.php';
 
-echo "CSV converter , made by Grey\n";
+echo 'CSV converter , made by Grey\n';
 
-$shortopts  = "i:"; // параметр пути до исходного файла
-$shortopts .= "c:"; // параметр пути до файла конфигурации
-$shortopts .= "o:"; // параметр пути до файла с результатом
-$shortopts .= "d:"; // разделитель
-$shortopts .= "h";  // справка
+$shortopts  = 'i:'; // параметр пути до исходного файла
+$shortopts .= 'c:'; // параметр пути до файла конфигурации
+$shortopts .= 'o:'; // параметр пути до файла с результатом
+$shortopts .= 'd:'; // разделитель
+$shortopts .= 'h';  // справка
 
 $longopts  = array(
-    "input:",       // параметр пути до исходного файла
-    "config:",      // параметр пути до файла конфигурации
-    "output:",      // параметр пути до файла с результатом
-    "delimiter:",   // разделитель
-    "skip-first",   // пропускать редактирование первой строки
-    "strict",        // проверка соответсвия столбцов в исходном файле и файле конфигурации
-    "help",         // справка
+    'input:',       // параметр пути до исходного файла
+    'config:',      // параметр пути до файла конфигурации
+    'output:',      // параметр пути до файла с результатом
+    'delimiter:',   // разделитель
+    'skip-first',   // пропускать редактирование первой строки
+    'strict',        // проверка соответсвия столбцов в исходном файле и файле конфигурации
+    'help',         // справка
 );
 $options = getopt($shortopts, $longopts);
 
@@ -26,157 +26,148 @@ switch (count($options)) {
         if(isset($options['h'])|isset($options['help'])){
             getReference();
         } else {
-            getError(["Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой \n"]);
+            getError(['Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой \n']);
         }   break;
     case 3:
     case 4:
     case 5:
     case 6: {
-        list($error,$skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename)=argParse($options);
+        list($skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename)=argParse($options);
+        $funcArray = loadConfFile($confFilename);
         if(!empty($error)){
-            array_unshift($error, "Ошибка параметра, произошли следующие ошибки:\n");
+            array_unshift($error,  'Ошибка файла, произошли следующие ошибки:\n');
             getError($error);
         }
+
         list($error,$encoding, $data) = loadOriginFile($originalFilename,$delimiter);
         if(!empty($error)){
-            array_unshift($error,  "Ошибка файла, произошли следующие ошибки:\n");
+            array_unshift($error,  'Ошибка файла, произошли следующие ошибки:\n');
             getError($error);
         }
-        list($error, $funcArray) = loadConfFile($confFilename);
-        if(!empty($error)){
-            array_unshift($error,  "Ошибка файла, произошли следующие ошибки:\n");
-            getError($error);
-        }
-        $error = testStrict($data,$funcArray);
+        testStrict($data,$funcArray);
         if(!empty($error)){
             getError($error);
         }
+
         $newArray=CreateNewArray($data,$funcArray,$skipFirst);
-        $error = saveNewFile($newFilename,$newArray,$delimiter);
-        if(!empty($error)){
-            array_unshift($error,  "Ошибка файла, произошли следующие ошибки:\n");
-            getError($error);
-        }
-        echo "Файл был успешно сконвертирован \n";
+        saveNewFile($newFilename,$newArray,$delimiter);
+        echo 'Файл был успешно сконвертирован \n';
         exit(0);
     }
     default:
-        getError(["Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой \n"]);
+        getError(['Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой \n']);
 }
 
 function argParse($options){
-    $error=[];
+    //установка флага skip-first
     $skipFirst=isset($options['skip-first']);
+    //установка разделителя
     $delimiter=',';
     if(isset($options['delimiter'])){
         if(isset($options['d'])) {
-            $error[]="попытка задать делитель передав две опции";
+            getError(['Ошибка параметра, произошли следующие ошибки:','попытка задать делитель передав две опции']);
         } else {
             $delimiter=$options['delimiter'];
         }
     } else if(isset($options['d'])) {
         $delimiter=$options['d'];
     }
+    //установка флага strict
     $strict=isset($options['strict']);
+    //установка имени входного файла и проверки
     $originalFilename='';
-    $confFilename='';
-    $newFilename='';
     if(isset($options['input'])){
         if(isset($options['i'])) {
-            $error[]="попытка задать входной файл передав две опции";
+            getError(['Ошибка параметра, произошли следующие ошибки:','попытка задать входной файл передав две опции']);
         } else {
             $originalFilename = $options['input'];
         }
     } else if(isset($options['i'])) {
         $originalFilename = $options['i'];
     }
+    if(!is_readable($originalFilename)){
+        getError(['Ошибка входного файла','файл не существует или не доступен для чтения']);
+    }
+    //установка имени файла конфигурации и проверки
+    $confFilename='';
     if(isset($options['config'])){
         if(isset($options['с'])) {
-            $error[]="попытка задать файл конфигурации передав две опции";
+            getError(['Ошибка параметра, произошли следующие ошибки:','попытка задать файл конфигурации передав две опции']);
         } else {
             $confFilename = $options['config'];
         }
     } else if(isset($options['c'])) {
         $confFilename = $options['c'];
     }
+    if(!is_file($confFilename)) {
+        getError(['Ошибка файла конфигурации','передан не файл или файл не существует']);
+    }
+    if(!is_readable($confFilename)) {
+        getError(['Ошибка файла конфигурации','файл не существует или не доступен для чтения']);
+    }
+    //установка имени выходного файла и проверки
+    $newFilename='';
     if(isset($options['output'])){
         if(isset($options['o'])) {
-            $error[]="попытка задать выходной файл передав две опции";
+            getError(['Ошибка параметра, произошли следующие ошибки:','попытка задать выходной файл передав две опции']);
         } else {
             $newFilename = $options['output'];
         }
     } else if(isset($options['o'])) {
         $newFilename = $options['o'];
-
     }
-
-    return [$error,$skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename];
+    if (!file_exists($newFilename)) {
+        $fp = fopen($newFilename, 'w');
+        fwrite($fp, "");
+        fclose($fp);
+    } else if(is_writable($newFilename)) {
+    } else {
+        getError(['Ошибка выходного файла, произошли следующие ошибки:','файл не доступен для записи']);
+    }
+    //возврат установленных значений
+    return [$skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename];
 }
 
 function testStrict($data,$funcArray){
     $keys = array_keys($funcArray);
     $max = max($keys);
-    if(count($data)>=$max){
-        return [];
-    } else {
-        return ['количество столбцов исходного файла не соответсвует требуемому для конвертаци'
-        , 'проверьте исходный файл и файл конфигурации'];
+    if(count($data)<$max){
+        getError(['количество столбцов исходного файла не соответсвует требуемому для конвертаци'
+            , 'проверьте исходный файл и файл конфигурации']);
     }
 }
 
 function saveNewFile($newFilename,$newArray,$delimiter)
 {
-    $error=[];
-    if (!file_exists($newFilename)) {
-        $fp = fopen($newFilename, "w"); // ("r" - считывать "w" - создавать "a" - добовлять к тексту),мы создаем файл
-        fwrite($fp, "Значение, то что будет в файле");
-        fclose($fp);
-    } else if(is_writable($newFilename)) {
-        file_put_contents($newFilename,"");
-    } else {
-        $error[] = 'файл не доступен для записи';
-        return $error;
-    }
-        if (($handle = fopen($newFilename, "w+")) !== false) {
-            foreach ($newArray as $key=>$row) {
-                if($key==0){
-                    $str="\"".implode("\"".$delimiter."\"",$row)."\"";
-                } else {
-                    $str="\n\"".implode("\"".$delimiter."\"",$row)."\"";
-                }
-                if(mb_check_encoding(implode("", $row),'UTF-8')){
-                    fwrite($handle,$str );
-                } else {
-                    $str=iconv('Windows-1251','UTF-8',$str);
-                    $newStr=mb_convert_encoding($str,'Windows-1251');
-                    fwrite($handle, $newStr);
-                }
+    file_put_contents($newFilename,'');
+    if (($handle = fopen($newFilename, 'w+')) !== false) {
+        foreach ($newArray as $key=>$row) {
+            if($key==0){
+                $str="\"".implode("\"".$delimiter."\"",$row)."\"";
+            } else {
+                $str="\n\"".implode("\"".$delimiter."\"",$row)."\"";
             }
-            fclose($handle);
+            if(mb_check_encoding(implode("", $row),'UTF-8')){
+                fwrite($handle,$str );
+            } else {
+                $str=iconv('Windows-1251','UTF-8',$str);
+                $newStr=mb_convert_encoding($str,'Windows-1251');
+                fwrite($handle, $newStr);
+            }
         }
-    return $error;
+        fclose($handle);
+    }
 }
 
 function loadConfFile($confFilename)
 {
-    $error=[];
-    $funcArray="";
-    if(!is_file($confFilename)) {
-        $error[] = 'передан не файл или файл не существует';
-        return [$error,$funcArray];
-    }
-    if(is_readable($confFilename)) {
-        ob_start();
-        $funcArray = include $confFilename;
-        ob_end_clean();
-    }
-    else {
-        $error[] = 'файл не существует или не доступен для чтения';
-    }
+    ob_start();
+    $funcArray = include $confFilename;
+    ob_end_clean();
     if(!is_array($funcArray)){
-        $error[] = 'переданный файл не содержит массив с инструкциями';
+        getError(['переданный файл не содержит массив с инструкциями']);
     }
-    return [$error,$funcArray];
+    return $funcArray;
 }
 
 function createNewArray(array $oldFile,array $funcArray,$skipFirst)
@@ -244,8 +235,7 @@ function loadOriginFile($originalFilename,$delimiter)
 }
 
 function getReference(){
-    $reference="";
-    $reference.="\n";
+    $reference="\n";
     $reference.="Usage:\n";
     $reference.="  csv_converter --help \n";
     $reference.="  csv_converter -i input_file_path -c configuration_file_path -o output_file_path\n";
