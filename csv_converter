@@ -26,7 +26,7 @@ switch (count($options)) {
         if(isset($options['h'])|isset($options['help'])){
             getReference();
         } else {
-            getParamError();
+            getError(["Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой \n"]);
         }   break;
     case 3:
     case 4:
@@ -34,30 +34,34 @@ switch (count($options)) {
     case 6: {
         list($error,$skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename)=argParse($options);
         if(!empty($error)){
-            getParamsError($error);
+            array_unshift($error, "Ошибка параметра, произошли следующие ошибки:\n");
+            getError($error);
         }
         list($error,$encoding, $data) = loadOriginFile($originalFilename,$delimiter);
         if(!empty($error)){
-            getFileError($error);
+            array_unshift($error,  "Ошибка файла, произошли следующие ошибки:\n");
+            getError($error);
         }
         list($error, $funcArray) = loadConfFile($confFilename);
         if(!empty($error)){
-            getFileError($error);
+            array_unshift($error,  "Ошибка файла, произошли следующие ошибки:\n");
+            getError($error);
         }
         $error = testStrict($data,$funcArray);
         if(!empty($error)){
-            getCustomError($error);
+            getError($error);
         }
         $newArray=CreateNewArray($data,$funcArray,$skipFirst);
         $error = saveNewFile($newFilename,$newArray,$delimiter);
         if(!empty($error)){
-            getFileError($error);
+            array_unshift($error,  "Ошибка файла, произошли следующие ошибки:\n");
+            getError($error);
         }
         echo "Файл был успешно сконвертирован \n";
         exit(0);
     }
     default:
-        getParamError();
+        getError(["Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой \n"]);
 }
 
 function argParse($options){
@@ -262,33 +266,8 @@ function getReference(){
     exit(0);
 }
 
-function getParamError(){
+function getError($errors){
     echo " \n";
-    echo "Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой \n";
-    echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
-    exit(1);
-}
-
-function getParamsError($errors){
-    echo " \n";
-    echo "Ошибка параметра, произошли следующие ошибки:\n";
-    foreach ($errors as $error){
-        echo $error."\n";
-    }
-    echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
-    exit(1);
-}
-
-function getCustomError($errors){
-    foreach ($errors as $error){
-        echo $error."\n";
-    }
-    exit(1);
-}
-
-function getFileError($errors){
-    echo " \n";
-    echo "Ошибка файла, произошли следующие ошибки:\n";
     foreach ($errors as $error){
         echo $error."\n";
     }
