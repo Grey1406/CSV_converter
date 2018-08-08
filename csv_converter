@@ -2,7 +2,7 @@
 <?php
 require_once __DIR__. '/vendor/autoload.php';
 
-echo 'CSV converter , made by Grey\n';
+echo "CSV converter , made by Grey\n";
 
 $shortopts  = 'i:'; // параметр пути до исходного файла
 $shortopts .= 'c:'; // параметр пути до файла конфигурации
@@ -26,7 +26,7 @@ switch (count($options)) {
         if(isset($options['h'])|isset($options['help'])){
             getReference();
         } else {
-            getError(['Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой \n']);
+            getError(['Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой']);
         }   break;
     case 3:
     case 4:
@@ -34,18 +34,39 @@ switch (count($options)) {
     case 6: {
         list($skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename)=argParse($options);
         $funcArray = loadConfFile($confFilename);
+        $EOL=detectEOL($originalFilename);
         list($encoding, $data) = loadOriginFile($originalFilename,$delimiter);
         testStrict($data,$funcArray);
         $newArray=CreateNewArray($data,$funcArray,$skipFirst);
-        saveNewFile($newFilename,$newArray,$delimiter);
-        echo 'Файл был успешно сконвертирован \n';
+        saveNewFile($newFilename,$newArray,$delimiter,$EOL,$encoding);
+        echo "Файл был успешно сконвертирован \n";
         exit(0);
     }
     default:
-        getError(['Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой \n']);
+        getError(['Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой']);
+}
+function detectEOL($originalFilename)
+{
+    if (($fo= fopen($originalFilename, "r")) !== false) {
+        $row = fgets($fo);
+        $eol = substr($row, -2);
+        if ($eol == "\r\n") {
+            return "\r\n";
+        } elseif ($eol == "\n\r") {
+            return "\n\r";
+        } elseif (substr($eol, -1) == "\n") {
+            return "\n";
+        } elseif (substr($eol, -1) == "\r") {
+            return "\r";
+        }
+    }
+    return false;
 }
 //функция разбора переданных аргументов и проверки файлов
 function argParse($options){
+    if(isset($options['h'])||isset($options['help'])){
+        getError(['Ошибка параметра, произошли следующие ошибки:','вызов справки совместно с выполнением кода, выберите что-то одно']);
+    }
     //установка флага skip-first
     $skipFirst=isset($options['skip-first']);
     //установка разделителя
@@ -124,7 +145,7 @@ function testStrict($data,$funcArray){
     }
 }
 //функция сохранения файла
-function saveNewFile($newFilename,$newArray,$delimiter)
+function saveNewFile($newFilename,$newArray,$delimiter,$EOL,$encoding)
 {
     file_put_contents($newFilename,'');
     if (($handle = fopen($newFilename, 'w+')) !== false) {
@@ -132,12 +153,12 @@ function saveNewFile($newFilename,$newArray,$delimiter)
             if($key==0){
                 $str="\"".implode("\"".$delimiter."\"",$row)."\"";
             } else {
-                $str="\n\"".implode("\"".$delimiter."\"",$row)."\"";
+                $str=$EOL."\"".implode("\"".$delimiter."\"",$row)."\"";
             }
-            if(mb_check_encoding(implode("", $row),'UTF-8')){
+            if($encoding=='UTF-8'){
                 fwrite($handle,$str );
             } else {
-                $str=iconv('Windows-1251','UTF-8',$str);
+                var_dump($str);
                 $newStr=mb_convert_encoding($str,'Windows-1251');
                 fwrite($handle, $newStr);
             }
@@ -175,25 +196,24 @@ function createNewArray(array $oldFile,array $funcArray,$skipFirst)
 }
 //функция получения нового значения для выходного файла
 function getNewValue($funcArray,$value, $rowData, $rowIndex, $columnIndex){
-
+    $returnedValue='';
     if(!isset($funcArray[$columnIndex])){
-        return $value;
-        }
-    if(is_callable($funcArray[$columnIndex])) {
+        $returnedValue=$value;
+    } else if(is_callable($funcArray[$columnIndex])) {
         $faker = Faker\Factory::create();
-        return $funcArray[$columnIndex]($value, $rowData, $rowIndex, $faker);
-    }
-    try{
-        $faker = Faker\Factory::create();
-        $funcName=$funcArray[$columnIndex];
-        if(is_string($faker->$funcName)){
-            $str=$faker->$funcName;
-            return $str;
+        $returnedValue=$funcArray[$columnIndex]($value, $rowData, $rowIndex, $faker);
+    } else {
+        try {
+            $faker = Faker\Factory::create();
+            $funcName = $funcArray[$columnIndex];
+            if (is_string($faker->$funcName)) {
+                $returnedValue = $faker->$funcName;
+            }
+        } catch (Exception $e) {
+            $returnedValue=$funcArray[$columnIndex];
         }
-    } catch (Exception $e) {
-        return $funcArray[$columnIndex];
     }
-    return $value;
+    return mb_convert_encoding($returnedValue,'UTF-8');
 }
 //функция загрузки исходного файла в массив
 function loadOriginFile($originalFilename,$delimiter)
@@ -208,6 +228,10 @@ function loadOriginFile($originalFilename,$delimiter)
                 } else {
                     $encoding = 'Windows-1251';
                 }
+            }
+            if($encoding == 'Windows-1251'){
+                $myDelimiter='\_|-/';
+                $data=explode($myDelimiter,mb_convert_encoding(implode($myDelimiter,$data),'UTF-8','Windows-1251'));
             }
             $arrayCSV[] = $data;
         }
@@ -246,3 +270,4 @@ function getError($errors){
     echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
     exit(1);
 }
+
