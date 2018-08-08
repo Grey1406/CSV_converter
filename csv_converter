@@ -16,11 +16,11 @@ $longopts  = array(
     'output:',      // параметр пути до файла с результатом
     'delimiter:',   // разделитель
     'skip-first',   // пропускать редактирование первой строки
-    'strict',        // проверка соответсвия столбцов в исходном файле и файле конфигурации
+    'strict',       // проверка соответсвия столбцов в исходном файле и файле конфигурации
     'help',         // справка
 );
 $options = getopt($shortopts, $longopts);
-
+//основной блок кода, где вызываются все остальные функции
 switch (count($options)) {
     case 1:
         if(isset($options['h'])|isset($options['help'])){
@@ -44,7 +44,7 @@ switch (count($options)) {
     default:
         getError(['Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой \n']);
 }
-
+//функция разбора переданных аргументов и проверки файлов
 function argParse($options){
     //установка флага skip-first
     $skipFirst=isset($options['skip-first']);
@@ -114,7 +114,7 @@ function argParse($options){
     //возврат установленных значений
     return [$skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename];
 }
-
+//функция проверки соответствия числа столбцов исходного файла и файла конфигурации
 function testStrict($data,$funcArray){
     $keys = array_keys($funcArray);
     $max = max($keys);
@@ -123,7 +123,7 @@ function testStrict($data,$funcArray){
             , 'проверьте исходный файл и файл конфигурации']);
     }
 }
-
+//функция сохранения файла
 function saveNewFile($newFilename,$newArray,$delimiter)
 {
     file_put_contents($newFilename,'');
@@ -145,7 +145,7 @@ function saveNewFile($newFilename,$newArray,$delimiter)
         fclose($handle);
     }
 }
-
+//функция загрузки файла конфигурации
 function loadConfFile($confFilename)
 {
     ob_start();
@@ -156,7 +156,7 @@ function loadConfFile($confFilename)
     }
     return $funcArray;
 }
-
+//функция создания нового массива из исходных данных
 function createNewArray(array $oldFile,array $funcArray,$skipFirst)
 {
     $newArray=[];
@@ -173,7 +173,7 @@ function createNewArray(array $oldFile,array $funcArray,$skipFirst)
     }
     return $newArray;
 }
-
+//функция получения нового значения для выходного файла
 function getNewValue($funcArray,$value, $rowData, $rowIndex, $columnIndex){
 
     if(!isset($funcArray[$columnIndex])){
@@ -195,7 +195,7 @@ function getNewValue($funcArray,$value, $rowData, $rowIndex, $columnIndex){
     }
     return $value;
 }
-
+//функция загрузки исходного файла в массив
 function loadOriginFile($originalFilename,$delimiter)
 {
     $arrayCSV=[];
@@ -215,7 +215,7 @@ function loadOriginFile($originalFilename,$delimiter)
     }
     return [$encoding,$arrayCSV];
 }
-
+//функция вывода справки
 function getReference(){
     $reference="\n";
     $reference.="Usage:\n";
@@ -237,7 +237,7 @@ function getReference(){
     echo  $reference;
     exit(0);
 }
-
+//функция вывода ошибки и выхода из программы с кодом 1
 function getError($errors){
     echo " \n";
     foreach ($errors as $error){
