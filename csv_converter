@@ -34,21 +34,8 @@ switch (count($options)) {
     case 6: {
         list($skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename)=argParse($options);
         $funcArray = loadConfFile($confFilename);
-        if(!empty($error)){
-            array_unshift($error,  'Ошибка файла, произошли следующие ошибки:\n');
-            getError($error);
-        }
-
-        list($error,$encoding, $data) = loadOriginFile($originalFilename,$delimiter);
-        if(!empty($error)){
-            array_unshift($error,  'Ошибка файла, произошли следующие ошибки:\n');
-            getError($error);
-        }
+        list($encoding, $data) = loadOriginFile($originalFilename,$delimiter);
         testStrict($data,$funcArray);
-        if(!empty($error)){
-            getError($error);
-        }
-
         $newArray=CreateNewArray($data,$funcArray,$skipFirst);
         saveNewFile($newFilename,$newArray,$delimiter);
         echo 'Файл был успешно сконвертирован \n';
@@ -211,27 +198,22 @@ function getNewValue($funcArray,$value, $rowData, $rowIndex, $columnIndex){
 
 function loadOriginFile($originalFilename,$delimiter)
 {
-    $error=[];
     $arrayCSV=[];
     $encoding= "";
-    if(is_readable($originalFilename)){
-            if (($handle = fopen($originalFilename, "r")) !== false) {
-                while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
-                    if ($encoding == "") {
-                        if(mb_check_encoding(implode("", $data),'UTF-8')){
-                            $encoding = 'UTF-8';
-                        } else {
-                            $encoding = 'Windows-1251';
-                        }
-                    }
-                    $arrayCSV[] = $data;
+    if (($handle = fopen($originalFilename, "r")) !== false) {
+        while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
+            if ($encoding == "") {
+                if(mb_check_encoding(implode("", $data),'UTF-8')){
+                    $encoding = 'UTF-8';
+                } else {
+                    $encoding = 'Windows-1251';
                 }
-                fclose($handle);
             }
-    } else {
-        $error[] = 'файл не существует или не доступен для чтения';
+            $arrayCSV[] = $data;
+        }
+        fclose($handle);
     }
-    return [$error,$encoding,$arrayCSV];
+    return [$encoding,$arrayCSV];
 }
 
 function getReference(){
