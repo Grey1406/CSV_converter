@@ -327,4 +327,3 @@ function getError($errors)
     echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
     exit(1);
 }
-

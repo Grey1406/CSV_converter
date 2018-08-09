@@ -43,14 +43,14 @@ final class csv_converterTest extends TestCase
 
     public function testMustWork()
     {
-        function isThisTwoCSVFilesEquals($firstFilename, $SecondFilename)
+        function isThisTwoCSVFilesEquals($firstFilename, $SecondFilename, $delimiter)
         {
             $isEqual = true;
             if (is_file($firstFilename) && is_file($SecondFilename)) {
                 if ((($handle = fopen($firstFilename, "r")) !== false) &&
                     (($handle2 = fopen($SecondFilename, "r")) !== false)) {
-                    while ((($data = fgetcsv($handle, 0)) !== false) &&
-                        (($data2 = fgetcsv($handle2, 0)) !== false)) {
+                    while ((($data = fgetcsv($handle, 0, $delimiter)) !== false) &&
+                        (($data2 = fgetcsv($handle2, 0, $delimiter)) !== false)) {
                         if (!empty(array_diff($data, $data2))) {
                             $isEqual = false;
                         }
@@ -71,7 +71,7 @@ final class csv_converterTest extends TestCase
             $output,
             $lastStr
         );
-        $this->assertTrue(isThisTwoCSVFilesEquals("Test/testCSV1.csv", "Test/output.csv"));
+        $this->assertTrue(isThisTwoCSVFilesEquals("Test/testCSV1.csv", "Test/output.csv", ","));
     }
 
     public function testMustReturnFailsWithWrongFileType()
@@ -97,15 +97,15 @@ final class csv_converterTest extends TestCase
     public function testMustReturnFileInSomeEncodingAsInputFile()
     {
         $value1=file_get_contents('Test/testCSV1.csv');
-        $encoding1 = mb_detect_encoding($value1);
+        $isUTFEncoding1 = mb_check_encoding($value1, 'UTF-8');
         exec(
             'php '.$this->programName.' -i Test/notReadableCSV.csv -c Test/notChangedConf.php -o Test/output.csv',
             $output,
             $lastStr
         );
         $value2=file_get_contents('Test/output.csv');
-        $encoding2 = mb_detect_encoding($value2);
-        $this->assertEquals($encoding1, $encoding2);
+        $isUTFEncoding2 = mb_check_encoding($value2, 'UTF-8');
+        $this->assertEquals($isUTFEncoding1, $isUTFEncoding2);
 
         $value1=file_get_contents('Test/Windows-1251.csv');
         $isUTFEncoding1 = mb_check_encoding($value1, 'UTF-8');
@@ -123,11 +123,26 @@ final class csv_converterTest extends TestCase
             $output,
             $lastStr
         );
-        $this->assertTrue(isThisTwoCSVFilesEquals("Test/Windows-1251.csv", "Test/output.csv"));
+        $this->assertTrue(isThisTwoCSVFilesEquals("Test/Windows-1251.csv", "Test/output.csv", ","));
+    }
+
+    public function testMustReturnFileWithSameDelimiterAsInInputFile()
+    {
+        $command='php '.$this->programName.' -i "Test/fileWithAnotherDelimiter.csv" ';
+        $command.= '  -c Test/notChangedConf.php -o "Test/output.csv" -d ";"';
+        exec(
+            $command,
+            $output,
+            $lastStr
+        );
+        $this->assertTrue(isThisTwoCSVFilesEquals('Test/fileWithAnotherDelimiter.csv', "Test/output.csv", ";"));
+        $command='php '.$this->programName.' -i "Test/fileWithAnotherDelimiter.csv" ';
+        $command.= '  -c Test/notChangedConf.php -o "Test/output.csv" ';
+        exec(
+            $command,
+            $output,
+            $lastStr
+        );
+        $this->assertFalse(isThisTwoCSVFilesEquals('Test/fileWithAnotherDelimiter.csv', "Test/output.csv", ";"));
     }
 }
-
-
-
-
-
