@@ -1,16 +1,16 @@
 #!/usr/bin/php
 <?php
-require_once __DIR__. '/vendor/autoload.php';
+require_once __DIR__ . '/vendor/autoload.php';
 
 echo "CSV converter , made by Grey\n";
 
-$shortopts  = 'i:'; // параметр пути до исходного файла
+$shortopts = 'i:'; // параметр пути до исходного файла
 $shortopts .= 'c:'; // параметр пути до файла конфигурации
 $shortopts .= 'o:'; // параметр пути до файла с результатом
 $shortopts .= 'd:'; // разделитель
 $shortopts .= 'h';  // справка
 
-$longopts  = array(
+$longopts = array(
     'input:',       // параметр пути до исходного файла
     'config:',      // параметр пути до файла конфигурации
     'output:',      // параметр пути до файла с результатом
@@ -23,31 +23,39 @@ $options = getopt($shortopts, $longopts);
 //основной блок кода, где вызываются все остальные функции
 switch (count($options)) {
     case 1:
-        if(isset($options['h'])|isset($options['help'])){
+        if (isset($options['h']) | isset($options['help'])) {
             getReference();
         } else {
             getError(['Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой']);
-        }   break;
+        }
+        break;
     case 3:
     case 4:
     case 5:
-    case 6: {
-        list($skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename)=argParse($options);
+    case 6:
+        list($skipFirst, $delimiter, $strict, $originalFilename, $confFilename, $newFilename) =
+            argParse($options, $argc);
+
         $funcArray = loadConfFile($confFilename);
-        $EOL=detectEOL($originalFilename);
-        list($encoding, $data) = loadOriginFile($originalFilename,$delimiter);
-        testStrict($data,$funcArray);
-        $newArray=CreateNewArray($data,$funcArray,$skipFirst);
-        saveNewFile($newFilename,$newArray,$delimiter,$EOL,$encoding);
+
+        $EOL = detectEOL($originalFilename);
+
+        list($encoding, $data) = loadOriginFile($originalFilename, $delimiter, $EOL);
+
+        testStrict($data, $funcArray);
+
+        $newArray = CreateNewArray($data, $funcArray, $skipFirst);
+
+        saveNewFile($newFilename, $newArray, $delimiter, $EOL, $encoding);
+
         echo "Файл был успешно сконвертирован \n";
         exit(0);
-    }
     default:
         getError(['Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой']);
 }
 function detectEOL($originalFilename)
 {
-    if (($fo= fopen($originalFilename, "r")) !== false) {
+    if (($fo = fopen($originalFilename, "r")) !== false) {
         $row = fgets($fo);
         $eol = substr($row, -2);
         if ($eol == "\r\n") {
@@ -62,210 +70,259 @@ function detectEOL($originalFilename)
     }
     return false;
 }
+
 //функция разбора переданных аргументов и проверки файлов
-function argParse($options){
-    if(isset($options['h'])||isset($options['help'])){
-        getError(['Ошибка параметра, произошли следующие ошибки:','вызов справки совместно с выполнением кода, выберите что-то одно']);
+function argParse($options, $argc)
+{
+
+//    $countParam=1;
+//    foreach ($options as $k=>$v){
+//        $countParam+=($k=='h'|$k=='help'|$k=='skip-first'|$k=='strict')?1:2;
+//    }
+//    if($countParam!=$argc){
+//        getError(['присутсвует неверный параметр'."\n"]);
+//        exit(1);
+//    }
+    if (isset($options['h']) || isset($options['help'])) {
+        getError([
+            'Ошибка параметра, произошли следующие ошибки:',
+            'вызов справки совместно с выполнением кода, выберите что-то одно'
+        ]);
     }
     //установка флага skip-first
-    $skipFirst=isset($options['skip-first']);
+    $skipFirst = isset($options['skip-first']);
     //установка разделителя
-    $delimiter=',';
-    if(isset($options['delimiter'])){
-        if(isset($options['d'])) {
-            getError(['Ошибка параметра, произошли следующие ошибки:','попытка задать делитель передав две опции']);
+    $delimiter = ',';
+    if (isset($options['delimiter'])) {
+        if (isset($options['d'])) {
+            getError(['Ошибка параметра, произошли следующие ошибки:', 'попытка задать делитель передав две опции']);
         } else {
-            $delimiter=$options['delimiter'];
+            $delimiter = $options['delimiter'];
         }
-    } else if(isset($options['d'])) {
-        $delimiter=$options['d'];
+    } else {
+        if (isset($options['d'])) {
+            $delimiter = $options['d'];
+        }
     }
     //установка флага strict
-    $strict=isset($options['strict']);
+    $strict = isset($options['strict']);
     //установка имени входного файла и проверки
-    $originalFilename='';
-    if(isset($options['input'])){
-        if(isset($options['i'])) {
-            getError(['Ошибка параметра, произошли следующие ошибки:','попытка задать входной файл передав две опции']);
+    $originalFilename = '';
+    if (isset($options['input'])) {
+        if (isset($options['i'])) {
+            getError([
+                'Ошибка параметра, произошли следующие ошибки:',
+                'попытка задать входной файл передав две опции'
+            ]);
         } else {
             $originalFilename = $options['input'];
         }
-    } else if(isset($options['i'])) {
-        $originalFilename = $options['i'];
+    } else {
+        if (isset($options['i'])) {
+            $originalFilename = $options['i'];
+        }
     }
-    if(!is_readable($originalFilename)){
-        getError(['Ошибка входного файла','файл не существует или не доступен для чтения']);
+    if (!is_readable($originalFilename)) {
+        getError(['Ошибка входного файла', 'файл не существует или не доступен для чтения']);
     }
     //установка имени файла конфигурации и проверки
-    $confFilename='';
-    if(isset($options['config'])){
-        if(isset($options['с'])) {
-            getError(['Ошибка параметра, произошли следующие ошибки:','попытка задать файл конфигурации передав две опции']);
+    $confFilename = '';
+    if (isset($options['config'])) {
+        if (isset($options['с'])) {
+            getError([
+                'Ошибка параметра, произошли следующие ошибки:',
+                'попытка задать файл конфигурации передав две опции'
+            ]);
         } else {
             $confFilename = $options['config'];
         }
-    } else if(isset($options['c'])) {
-        $confFilename = $options['c'];
+    } else {
+        if (isset($options['c'])) {
+            $confFilename = $options['c'];
+        }
     }
-    if(!is_file($confFilename)) {
-        getError(['Ошибка файла конфигурации','передан не файл или файл не существует']);
+    if (!is_file($confFilename)) {
+        getError(['Ошибка файла конфигурации', 'передан не файл или файл не существует']);
     }
-    if(!is_readable($confFilename)) {
-        getError(['Ошибка файла конфигурации','файл не существует или не доступен для чтения']);
+    if (!is_readable($confFilename)) {
+        getError(['Ошибка файла конфигурации', 'файл не существует или не доступен для чтения']);
     }
     //установка имени выходного файла и проверки
-    $newFilename='';
-    if(isset($options['output'])){
-        if(isset($options['o'])) {
-            getError(['Ошибка параметра, произошли следующие ошибки:','попытка задать выходной файл передав две опции']);
+    $newFilename = '';
+    if (isset($options['output'])) {
+        if (isset($options['o'])) {
+            getError([
+                'Ошибка параметра, произошли следующие ошибки:',
+                'попытка задать выходной файл передав две опции'
+            ]);
         } else {
             $newFilename = $options['output'];
         }
-    } else if(isset($options['o'])) {
-        $newFilename = $options['o'];
+    } else {
+        if (isset($options['o'])) {
+            $newFilename = $options['o'];
+        }
     }
     if (!file_exists($newFilename)) {
         $fp = fopen($newFilename, 'w');
         fwrite($fp, "");
         fclose($fp);
-    } else if(is_writable($newFilename)) {
     } else {
-        getError(['Ошибка выходного файла, произошли следующие ошибки:','файл не доступен для записи']);
+        if (is_writable($newFilename)) {
+        } else {
+            getError(['Ошибка выходного файла, произошли следующие ошибки:', 'файл не доступен для записи']);
+        }
     }
     //возврат установленных значений
-    return [$skipFirst,$delimiter,$strict,$originalFilename,$confFilename,$newFilename];
+    return [$skipFirst, $delimiter, $strict, $originalFilename, $confFilename, $newFilename];
 }
+
 //функция проверки соответствия числа столбцов исходного файла и файла конфигурации
-function testStrict($data,$funcArray){
+function testStrict($data, $funcArray)
+{
     $keys = array_keys($funcArray);
     $max = max($keys);
-    if(count($data)<$max){
-        getError(['количество столбцов исходного файла не соответсвует требуемому для конвертаци'
-            , 'проверьте исходный файл и файл конфигурации']);
+    if (count($data) < $max) {
+        getError([
+            'количество столбцов исходного файла не соответсвует требуемому для конвертаци'
+            ,
+            'проверьте исходный файл и файл конфигурации'
+        ]);
     }
 }
+
 //функция сохранения файла
-function saveNewFile($newFilename,$newArray,$delimiter,$EOL,$encoding)
+function saveNewFile($newFilename, $newArray, $delimiter, $EOL, $encoding)
 {
-    file_put_contents($newFilename,'');
+    file_put_contents($newFilename, '');
     if (($handle = fopen($newFilename, 'w+')) !== false) {
-        foreach ($newArray as $key=>$row) {
-            if($key==0){
-                $str="\"".implode("\"".$delimiter."\"",$row)."\"";
+        foreach ($newArray as $key => $row) {
+            if ($key < count($newArray) - 1) {
+                $str = "\"" . implode("\"" . $delimiter . "\"", $row) . "\"$EOL";
             } else {
-                $str=$EOL."\"".implode("\"".$delimiter."\"",$row)."\"";
+                $str = "\"" . implode("\"" . $delimiter . "\"", $row) . "\"";
             }
-            if($encoding=='UTF-8'){
-                fwrite($handle,$str );
+            if ($encoding == 'UTF-8') {
+                fwrite($handle, $str);
             } else {
-                var_dump($str);
-                $newStr=mb_convert_encoding($str,'Windows-1251');
+                $newStr = mb_convert_encoding($str, 'Windows-1251');
                 fwrite($handle, $newStr);
             }
         }
         fclose($handle);
     }
 }
+
 //функция загрузки файла конфигурации
 function loadConfFile($confFilename)
 {
     ob_start();
     $funcArray = include $confFilename;
     ob_end_clean();
-    if(!is_array($funcArray)){
+    if (!is_array($funcArray)) {
         getError(['переданный файл не содержит массив с инструкциями']);
     }
     return $funcArray;
 }
+
 //функция создания нового массива из исходных данных
-function createNewArray(array $oldFile,array $funcArray,$skipFirst)
+function createNewArray(array $oldFile, array $funcArray, $skipFirst)
 {
-    $newArray=[];
-    $i=0;
-    if($skipFirst){
-        $i=1;
+    $newArray = [];
+    $i = 0;
+    if ($skipFirst) {
+        $i = 1;
     }
     for (; $i < count($oldFile); $i++) {
-        $newRow=[];
+        $newRow = [];
         for ($j = 0; $j < count($oldFile[$i]); $j++) {
-            $newRow[]=getNewValue($funcArray,$oldFile[$i][$j], $oldFile[$i], $i,$j);
+            $newRow[] = getNewValue($funcArray, $oldFile[$i][$j], $oldFile[$i], $i, $j);
         }
-        $newArray[]=$newRow;
+        $newArray[] = $newRow;
     }
     return $newArray;
 }
+
 //функция получения нового значения для выходного файла
-function getNewValue($funcArray,$value, $rowData, $rowIndex, $columnIndex){
-    $returnedValue='';
-    if(!isset($funcArray[$columnIndex])){
-        $returnedValue=$value;
-    } else if(is_callable($funcArray[$columnIndex])) {
-        $faker = Faker\Factory::create();
-        $returnedValue=$funcArray[$columnIndex]($value, $rowData, $rowIndex, $faker);
+function getNewValue($funcArray, $value, $rowData, $rowIndex, $columnIndex)
+{
+    $returnedValue = '';
+    if (!isset($funcArray[$columnIndex])) {
+        $returnedValue = $value;
     } else {
-        try {
+        if (is_callable($funcArray[$columnIndex])) {
             $faker = Faker\Factory::create();
-            $funcName = $funcArray[$columnIndex];
-            if (is_string($faker->$funcName)) {
-                $returnedValue = $faker->$funcName;
+            $returnedValue = $funcArray[$columnIndex]($value, $rowData, $rowIndex, $faker);
+        } else {
+            try {
+                $faker = Faker\Factory::create();
+                $funcName = $funcArray[$columnIndex];
+                if (is_string($faker->$funcName)) {
+                    $returnedValue = $faker->$funcName;
+                }
+            } catch (Exception $e) {
+                $returnedValue = $funcArray[$columnIndex];
             }
-        } catch (Exception $e) {
-            $returnedValue=$funcArray[$columnIndex];
         }
     }
-    return mb_convert_encoding($returnedValue,'UTF-8');
+    return mb_convert_encoding($returnedValue, 'UTF-8');
 }
+
 //функция загрузки исходного файла в массив
-function loadOriginFile($originalFilename,$delimiter)
+function loadOriginFile($originalFilename, $delimiter, $EOL)
 {
-    $arrayCSV=[];
-    $encoding= "";
+    $arrayCSV = [];
+    $encoding = "";
     if (($handle = fopen($originalFilename, "r")) !== false) {
-        while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
+        while (($data = fgets($handle)) !== false) {
             if ($encoding == "") {
-                if(mb_check_encoding(implode("", $data),'UTF-8')){
+                if (mb_check_encoding($data, 'UTF-8')) {
                     $encoding = 'UTF-8';
                 } else {
                     $encoding = 'Windows-1251';
                 }
             }
-            if($encoding == 'Windows-1251'){
-                $myDelimiter='\_|-/';
-                $data=explode($myDelimiter,mb_convert_encoding(implode($myDelimiter,$data),'UTF-8','Windows-1251'));
+            $data = str_replace($EOL, "", $data);
+            if ($encoding == 'Windows-1251') {
+                $data = mb_convert_encoding($data, 'UTF-8', 'Windows-1251');
             }
-            $arrayCSV[] = $data;
+            $arrayCSV[] = str_getcsv($data, $delimiter);
         }
         fclose($handle);
     }
-    return [$encoding,$arrayCSV];
+    return [$encoding, $arrayCSV];
 }
+
 //функция вывода справки
-function getReference(){
-    $reference="\n";
-    $reference.="Usage:\n";
-    $reference.="  csv_converter --help \n";
-    $reference.="  csv_converter -i input_file_path -c configuration_file_path -o output_file_path\n";
-    $reference.="  csv_converter -i input_file_path -c configuration_file_path -o output_file_path [-d \",\"]\n";
-    $reference.="  csv_converter -i input_file_path -c configuration_file_path -o output_file_path [--skip-first]\n";
-    $reference.="  csv_converter -i input_file_path -c configuration_file_path -o output_file_path [--strict]\n";
-    $reference.="\n";
-    $reference.="Options:\n";
-    $reference.="  -h --help                                    Show this screen.\n";
-    $reference.="  -i | --imput      input_file_path            Path to imput csv file.\n";
-    $reference.="  -c | --config     configuration_file_path    Path to configuration .php file.\n";
-    $reference.="  -o | --output     output_file_path           Path to output csv file.\n";
-    $reference.="  -d | --delimiter  delimiter                  Change standard delimiter for csv files.\n";
-    $reference.="  --skip-first                                 Skip the first row as a header\n";
-    $reference.="  --strict                                     Verify that the source file contains the ";
-    $reference.=" required number of columns described in the configuration file.\n";
-    echo  $reference;
+function getReference()
+{
+    $reference = "\n";
+    $reference .= "Usage:\n";
+    $reference .= "  csv_converter --help \n";
+    $reference .= "  csv_converter -i input_file_path -c configuration_file_path -o output_file_path\n";
+    $reference .= "  csv_converter -i input_file_path -c configuration_file_path -o output_file_path [-d \",\"]\n";
+    $reference .= "  csv_converter -i input_file_path -c configuration_file_path -o output_file_path [--skip-first]\n";
+    $reference .= "  csv_converter -i input_file_path -c configuration_file_path -o output_file_path [--strict]\n";
+    $reference .= "\n";
+    $reference .= "Options:\n";
+    $reference .= "  -h --help                                    Show this screen.\n";
+    $reference .= "  -i | --imput      input_file_path            Path to imput csv file.\n";
+    $reference .= "  -c | --config     configuration_file_path    Path to configuration .php file.\n";
+    $reference .= "  -o | --output     output_file_path           Path to output csv file.\n";
+    $reference .= "  -d | --delimiter  delimiter                  Change standard delimiter for csv files.\n";
+    $reference .= "  --skip-first                                 Skip the first row as a header\n";
+    $reference .= "  --strict                                     Verify that the source file contains the ";
+    $reference .= " required number of columns described in the configuration file.\n";
+    echo $reference;
     exit(0);
 }
+
 //функция вывода ошибки и выхода из программы с кодом 1
-function getError($errors){
+function getError($errors)
+{
     echo " \n";
-    foreach ($errors as $error){
-        echo $error."\n";
+    foreach ($errors as $error) {
+        echo $error . "\n";
     }
     echo "Для просмотра справки, используйте команду: \"csv_converter -h|--help\" \n";
     exit(1);
