@@ -113,16 +113,6 @@ function argParse($options, $argc)
     if ($newFilename == '') {
         getError(['Ошибка выходного файла', 'передан не файл или файл не существует']);
     }
-    if (!file_exists($newFilename)) {
-        $fp = fopen($newFilename, 'w');
-        fwrite($fp, "");
-        fclose($fp);
-    } else {
-        if (is_writable($newFilename)) {
-        } else {
-            getError(['Ошибка выходного файла, произошли следующие ошибки:', 'файл не доступен для записи']);
-        }
-    }
     //возврат установленных значений
     return [$skipFirst, $delimiter, $strict, $originalFilename, $confFilename, $newFilename];
 }
@@ -144,22 +134,33 @@ function testStrict($data, $funcArray)
 //функция сохранения файла
 function saveNewFile($newFilename, $newArray, $delimiter, $EOL, $encoding)
 {
-    file_put_contents($newFilename, '');
-    if (($handle = fopen($newFilename, 'w+')) !== false) {
-        foreach ($newArray as $key => $row) {
-            if ($key < count($newArray) - 1) {
-                $str = "\"" . implode("\"" . $delimiter . "\"", $row) . "\"$EOL";
-            } else {
-                $str = "\"" . implode("\"" . $delimiter . "\"", $row) . "\"";
+    try {
+        if (is_writable($newFilename)) {
+            file_put_contents($newFilename, '');
+            if (($handle = fopen($newFilename, 'w+')) !== false) {
+                foreach ($newArray as $key => $row) {
+                    if ($key < count($newArray) - 1) {
+                        $str = "\"" . implode("\"" . $delimiter . "\"", $row) . "\"$EOL";
+                    } else {
+                        $str = "\"" . implode("\"" . $delimiter . "\"", $row) . "\"";
+                    }
+                    if ($encoding == 'UTF-8') {
+                        fwrite($handle, $str);
+                    } else {
+                        $newStr = mb_convert_encoding($str, 'Windows-1251');
+                        fwrite($handle, $newStr);
+                    }
+                }
+                fclose($handle);
             }
-            if ($encoding == 'UTF-8') {
-                fwrite($handle, $str);
-            } else {
-                $newStr = mb_convert_encoding($str, 'Windows-1251');
-                fwrite($handle, $newStr);
-            }
+        } else {
+            getError(['Ошибка выходного файла, произошли следующие ошибки:', 'файл не доступен для записи']);
         }
-        fclose($handle);
+    } catch (Exception $e) {
+        getError([
+            'Ошибка выходного файла, при записи в файл произошла непредвиденная ошибка:',
+            $e
+        ]);
     }
 }
 
