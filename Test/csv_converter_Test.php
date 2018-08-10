@@ -1,7 +1,5 @@
 <?php namespace PHPUnit\Framework;
 
-use PHPUnit\Framework\Constraint\IsNull;
-
 final class CsvConverterTest extends TestCase
 {
     private $programName = 'csv_converter.php';
@@ -216,12 +214,6 @@ final class CsvConverterTest extends TestCase
             $output,
             $lastStr
         );
-        $arrayCSV2 = [];
-        if (($handle = fopen($outputFilename, "r")) !== false) {
-            $data = fgets($handle);
-            $arrayCSV2 = str_getcsv($data);
-            fclose($handle);
-        }
         $this->assertTrue(isThisTwoCSVFilesEquals($inputFilename, $outputFilename, ","));
     }
 }
