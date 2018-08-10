@@ -1,10 +1,8 @@
-<?php
+<?php namespace PHPUnit\Framework;
 
-use PHPUnit\Framework\TestCase;
-
-final class csv_converterTest extends TestCase
+final class CsvConverterTest extends TestCase
 {
-    private $programName = 'csv_converter';
+    private $programName = 'csv_converter.php';
 
     public function setUp()
     {
@@ -12,8 +10,11 @@ final class csv_converterTest extends TestCase
 
     public function testMustReturnSuccess0()
     {
-        exec('php ' . $this->programName . ' -i Test/testCSV1.csv -c Test/conf1.php -o Test/output.csv', $output,
-            $lastStr);
+        exec(
+            'php ' . $this->programName . ' -i Test/testCSV1.csv -c Test/conf1.php -o Test/output.csv',
+            $output,
+            $lastStr
+        );
         $this->assertEquals('0', $lastStr);
         exec(
             'php ' . $this->programName . ' --input Test/testCSV1.csv --config Test/conf1.php --output Test/output.csv',
@@ -88,8 +89,10 @@ final class csv_converterTest extends TestCase
 
     public function testMustReturnFailsWithNotReadableFile()
     {
+        $command = 'php ' . $this->programName . ' -i Test/testCSV1.csv ';
+        $command .= '-c Test/notChangedConf.php -o "Test/notReadableCSV.csv"';
         exec(
-            'php ' . $this->programName . ' -i Test/testCSV1.csv -c Test/notChangedConf.php -o "Test/notReadableCSV.csv"',
+            $command,
             $output,
             $lastStr
         );
@@ -101,7 +104,7 @@ final class csv_converterTest extends TestCase
         $value1 = file_get_contents('Test/testCSV1.csv');
         $isUTFEncoding1 = mb_check_encoding($value1, 'UTF-8');
         exec(
-            'php ' . $this->programName . ' -i Test/notReadableCSV.csv -c Test/notChangedConf.php -o Test/output.csv',
+            'php ' . $this->programName . ' -i Test/testCSV1.csv -c Test/notChangedConf.php -o Test/output.csv',
             $output,
             $lastStr
         );
@@ -171,25 +174,25 @@ final class csv_converterTest extends TestCase
             $arrayCSV2 = str_getcsv($data);
             fclose($handle);
         }
-        $isNumeric=false;
+        $isNumeric = false;
         try {
             $asa = $arrayCSV2[0] / 1;
-            $isNumeric=true;
+            $isNumeric = true;
         } catch (Exception $e) {
         }
         $this->assertFalse($isNumeric);
-        $this->assertTrue($arrayCSV2[1]==$arrayCSV1[1]);
-        $isNumeric=false;
+        $this->assertTrue($arrayCSV2[1] == $arrayCSV1[1]);
+        $isNumeric = false;
         try {
             $asa = $arrayCSV2[2] / 1;
-            $isNumeric=true;
+            $isNumeric = true;
         } catch (Exception $e) {
         }
         $this->assertTrue($isNumeric);
-        $isNumeric=false;
+        $isNumeric = false;
         try {
             $asa = $arrayCSV2[3] / 1;
-            $isNumeric=true;
+            $isNumeric = true;
         } catch (Exception $e) {
         }
         $this->assertTrue($isNumeric);
