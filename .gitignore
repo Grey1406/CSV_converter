@@ -2,3 +2,4 @@ vendor/
 .idea/
 output.csv
 .phpunit.result.cache
+composer.phar

@@ -174,27 +174,12 @@ final class CsvConverterTest extends TestCase
             $arrayCSV2 = str_getcsv($data);
             fclose($handle);
         }
-        $isNumeric = false;
-        try {
-            $asa = $arrayCSV2[0] / 1;
-            $isNumeric = true;
-        } catch (Exception $e) {
-        }
+        $isNumeric = is_numeric($arrayCSV2[0]);
         $this->assertFalse($isNumeric);
         $this->assertTrue($arrayCSV2[1] == $arrayCSV1[1]);
-        $isNumeric = false;
-        try {
-            $asa = $arrayCSV2[2] / 1;
-            $isNumeric = true;
-        } catch (Exception $e) {
-        }
+        $isNumeric = is_numeric($arrayCSV2[2]);
         $this->assertTrue($isNumeric);
-        $isNumeric = false;
-        try {
-            $asa = $arrayCSV2[3] / 1;
-            $isNumeric = true;
-        } catch (Exception $e) {
-        }
+        $isNumeric = is_numeric($arrayCSV2[3]);
         $this->assertTrue($isNumeric);
     }
 }
