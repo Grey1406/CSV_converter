@@ -228,6 +228,7 @@ function loadConfFile($confFilename)
 //функция создания нового массива из исходных данных
 function createNewArray(array $oldFile, array $funcArray, $skipFirst)
 {
+
     $newArray = [];
     $i = 0;
     if ($skipFirst) {
@@ -241,6 +242,7 @@ function createNewArray(array $oldFile, array $funcArray, $skipFirst)
         $newArray[] = $newRow;
     }
     return $newArray;
+
 }
 
 //функция получения нового значения для выходного файла
@@ -257,14 +259,20 @@ function getNewValue($funcArray, $value, $rowData, $rowIndex, $columnIndex)
             try {
                 $faker = Faker\Factory::create();
                 $funcName = $funcArray[$columnIndex];
-                if (is_string($faker->$funcName)) {
+                var_dump($faker->$funcName);
+                $returnedValue = $faker->$funcName;
+                var_dump($returnedValue);
+                if (isset($returnedValue)) {
                     $returnedValue = $faker->$funcName;
+
+                    var_dump($returnedValue);
                 }
             } catch (Exception $e) {
                 $returnedValue = $funcArray[$columnIndex];
             }
         }
     }
+
     return mb_convert_encoding($returnedValue, 'UTF-8');
 }
 
