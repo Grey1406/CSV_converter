@@ -53,6 +53,7 @@ switch (count($options)) {
     default:
         getError(['Ошибка параметра, передано неверное число параметров, воспользуйтесь справкой']);
 }
+
 function detectEOL($originalFilename)
 {
     if (($fo = fopen($originalFilename, "r")) !== false) {
@@ -242,13 +243,11 @@ function createNewArray(array $oldFile, array $funcArray, $skipFirst)
         $newArray[] = $newRow;
     }
     return $newArray;
-
 }
 
 //функция получения нового значения для выходного файла
 function getNewValue($funcArray, $value, $rowData, $rowIndex, $columnIndex)
 {
-    $returnedValue = '';
     if (!isset($funcArray[$columnIndex])) {
         $returnedValue = $value;
     } else {
@@ -259,13 +258,9 @@ function getNewValue($funcArray, $value, $rowData, $rowIndex, $columnIndex)
             try {
                 $faker = Faker\Factory::create();
                 $funcName = $funcArray[$columnIndex];
-                var_dump($faker->$funcName);
                 $returnedValue = $faker->$funcName;
-                var_dump($returnedValue);
                 if (isset($returnedValue)) {
                     $returnedValue = $faker->$funcName;
-
-                    var_dump($returnedValue);
                 }
             } catch (Exception $e) {
                 $returnedValue = $funcArray[$columnIndex];
@@ -297,6 +292,14 @@ function loadOriginFile($originalFilename, $delimiter, $EOL)
             $arrayCSV[] = str_getcsv($data, $delimiter);
         }
         fclose($handle);
+    }
+    $countColumns=count($arrayCSV[0]);
+    foreach ($arrayCSV as $key => $row) {
+        if (count(($row))!=$countColumns) {
+            getError([
+                'Ошибка входного файла, произошли следующие ошибки:',
+                'файл содержит разное число столбцов, и не может считаться CVS файлом (строка '.$key.')']);
+        }
     }
     return [$encoding, $arrayCSV];
 }
