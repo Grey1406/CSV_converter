@@ -1,5 +1,7 @@
 <?php namespace PHPUnit\Framework;
 
+use PHPUnit\Framework\Constraint\IsNull;
+
 final class CsvConverterTest extends TestCase
 {
     private $programName = 'csv_converter.php';
@@ -181,5 +183,45 @@ final class CsvConverterTest extends TestCase
         $this->assertTrue($isNumeric);
         $isNumeric = is_numeric($arrayCSV2[3]);
         $this->assertTrue($isNumeric);
+    }
+
+    public function testMustReturnFileWithNull()
+    {
+        $inputFilename = "Test/testCSV2.csv";
+        $outputFilename = "Test/output.csv";
+        $command = 'php ' . $this->programName . ' -i ' . $inputFilename;
+        $command .= '  -c confExample.php -o ' . $outputFilename;
+        exec(
+            $command,
+            $output,
+            $lastStr
+        );
+        $arrayCSV2 = [];
+        if (($handle = fopen($outputFilename, "r")) !== false) {
+            $data = fgets($handle);
+            $arrayCSV2 = str_getcsv($data);
+            fclose($handle);
+        }
+        $this->assertTrue(empty($arrayCSV2[2]));
+    }
+
+    public function testMustReturnFileWithCorrectComma()
+    {
+        $inputFilename = "Test/testCSV3.csv";
+        $outputFilename = "Test/output.csv";
+        $command = 'php ' . $this->programName . ' -i ' . $inputFilename;
+        $command .= '  -c Test/notChangedConf.php -o ' . $outputFilename;
+        exec(
+            $command,
+            $output,
+            $lastStr
+        );
+        $arrayCSV2 = [];
+        if (($handle = fopen($outputFilename, "r")) !== false) {
+            $data = fgets($handle);
+            $arrayCSV2 = str_getcsv($data);
+            fclose($handle);
+        }
+        $this->assertTrue(isThisTwoCSVFilesEquals($inputFilename, $outputFilename, ","));
     }
 }

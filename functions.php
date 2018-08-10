@@ -139,16 +139,14 @@ function saveNewFile($newFilename, $newArray, $delimiter, $EOL, $encoding)
             file_put_contents($newFilename, '');
             if (($handle = fopen($newFilename, 'w+')) !== false) {
                 foreach ($newArray as $key => $row) {
-                    var_dump($row);
-                    $newRow=[];
+                    $newRow = [];
                     foreach ($row as $item) {
-                        $item = str_replace("\"", "\"\"", $item);
-                        if (strstr($item, $delimiter)) {
+                        if (strstr($item, $delimiter) || strstr($item, "\"")) {
+                            $item = str_replace("\"", "\"\"", $item);
                             $item = "\"" . $item . "\"";
                         }
-                        $newRow[]=$item;
+                        $newRow[] = $item;
                     }
-                    var_dump($newRow);
                     if ($key < count($newArray) - 1) {
                         $str = implode($delimiter, $newRow) . "$EOL";
                     } else {
@@ -208,7 +206,7 @@ function createNewArray(array $oldFile, array $funcArray, $skipFirst)
 //функция получения нового значения для выходного файла
 function getNewValue($funcArray, $value, $rowData, $rowIndex, $columnIndex)
 {
-    if (!isset($funcArray[$columnIndex])) {
+    if (!key_exists($columnIndex, $funcArray)) {
         $returnedValue = $value;
     } else {
         if (is_callable($funcArray[$columnIndex])) {
