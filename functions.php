@@ -139,10 +139,20 @@ function saveNewFile($newFilename, $newArray, $delimiter, $EOL, $encoding)
             file_put_contents($newFilename, '');
             if (($handle = fopen($newFilename, 'w+')) !== false) {
                 foreach ($newArray as $key => $row) {
+                    var_dump($row);
+                    $newRow=[];
+                    foreach ($row as $item) {
+                        $item = str_replace("\"", "\"\"", $item);
+                        if (strstr($item, $delimiter)) {
+                            $item = "\"" . $item . "\"";
+                        }
+                        $newRow[]=$item;
+                    }
+                    var_dump($newRow);
                     if ($key < count($newArray) - 1) {
-                        $str = "\"" . implode("\"" . $delimiter . "\"", $row) . "\"$EOL";
+                        $str = implode($delimiter, $newRow) . "$EOL";
                     } else {
-                        $str = "\"" . implode("\"" . $delimiter . "\"", $row) . "\"";
+                        $str = implode($delimiter, $newRow);
                     }
                     if ($encoding == 'UTF-8') {
                         fwrite($handle, $str);
@@ -243,12 +253,13 @@ function loadOriginFile($originalFilename, $delimiter, $EOL)
         }
         fclose($handle);
     }
-    $countColumns=count($arrayCSV[0]);
+    $countColumns = count($arrayCSV[0]);
     foreach ($arrayCSV as $key => $row) {
-        if (count(($row))!=$countColumns) {
+        if (count(($row)) != $countColumns) {
             getError([
                 'Ошибка входного файла, произошли следующие ошибки:',
-                'файл содержит разное число столбцов, и не может считаться CVS файлом (строка '.$key.')']);
+                'файл содержит разное число столбцов, и не может считаться CVS файлом (строка ' . $key . ')'
+            ]);
         }
     }
     return [$encoding, $arrayCSV];
