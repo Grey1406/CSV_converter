@@ -152,11 +152,11 @@ function saveNewFile($newFilename, $newArray, $delimiter, $EOL, $encoding)
                     } else {
                         $str = implode($delimiter, $newRow);
                     }
-                    if ($encoding == 'UTF-8') {
-                        fwrite($handle, $str);
-                    } else {
-                        $newStr = mb_convert_encoding($str, 'Windows-1251');
-                        fwrite($handle, $newStr);
+                    if ($encoding != 'UTF-8') {
+                        $str = mb_convert_encoding($str, 'Windows-1251');
+                    }
+                    if (fwrite($handle, $str) === false) {
+                        getError(['Ошибка выходного файла, при записи в файл произошла непредвиденная ошибка']);
                     }
                 }
                 fclose($handle);
@@ -256,7 +256,7 @@ function loadOriginFile($originalFilename, $delimiter, $EOL)
         if (count(($row)) != $countColumns) {
             getError([
                 'Ошибка входного файла, произошли следующие ошибки:',
-                'файл содержит разное число столбцов, и не может считаться CVS файлом (строка ' . ($key+1). ')'
+                'файл содержит разное число столбцов, и не может считаться CVS файлом (строка ' . ($key + 1) . ')'
             ]);
         }
     }
