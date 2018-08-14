@@ -133,6 +133,8 @@ final class CsvConverterTest extends TestCase
 
     public function testMustReturnFileWithSameDelimiterAsInInputFile()
     {
+        //isThisTwoCSVFilesEquals-функция возвращающая true если содержимое файлов, как файлов csv равно
+        //если выходной файл пришел с другим разделителем, содержимое файло будет прочитано по разному
         $command = 'php ' . $this->programName . ' -i "Test/fileWithAnotherDelimiter.csv" ';
         $command .= '  -c Test/notChangedConf.php -o "Test/output.csv" -d ";"';
         exec(
