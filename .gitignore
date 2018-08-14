@@ -3,3 +3,4 @@ vendor/
 output.csv
 .phpunit.result.cache
 composer.phar
+Test/notReadableCSV.csv
