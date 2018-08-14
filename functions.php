@@ -134,41 +134,34 @@ function testStrict($data, $funcArray)
 //функция сохранения файла
 function saveNewFile($newFilename, $newArray, $delimiter, $EOL, $encoding)
 {
-    try {
-        if (is_writable($newFilename)) {
-            file_put_contents($newFilename, '');
-            if (($handle = fopen($newFilename, 'w+')) !== false) {
-                foreach ($newArray as $key => $row) {
-                    $newRow = [];
-                    foreach ($row as $item) {
-                        if (strstr($item, $delimiter) || strstr($item, "\"")) {
-                            $item = str_replace("\"", "\"\"", $item);
-                            $item = "\"" . $item . "\"";
-                        }
-                        $newRow[] = $item;
+    if (is_writable($newFilename)) {
+        file_put_contents($newFilename, '');
+        if (($handle = fopen($newFilename, 'w+')) !== false) {
+            foreach ($newArray as $key => $row) {
+                $newRow = [];
+                foreach ($row as $item) {
+                    if (strstr($item, $delimiter) || strstr($item, "\"")) {
+                        $item = str_replace("\"", "\"\"", $item);
+                        $item = "\"" . $item . "\"";
                     }
-                    if ($key < count($newArray) - 1) {
-                        $str = implode($delimiter, $newRow) . "$EOL";
-                    } else {
-                        $str = implode($delimiter, $newRow);
-                    }
-                    if ($encoding != 'UTF-8') {
-                        $str = mb_convert_encoding($str, 'Windows-1251');
-                    }
-                    if (fwrite($handle, $str) === false) {
-                        getError(['Ошибка выходного файла, при записи в файл произошла непредвиденная ошибка']);
-                    }
+                    $newRow[] = $item;
                 }
-                fclose($handle);
+                if ($key < count($newArray) - 1) {
+                    $str = implode($delimiter, $newRow) . "$EOL";
+                } else {
+                    $str = implode($delimiter, $newRow);
+                }
+                if ($encoding != 'UTF-8') {
+                    $str = mb_convert_encoding($str, 'Windows-1251');
+                }
+                if (fwrite($handle, $str) === false) {
+                    getError(['Ошибка выходного файла, при записи в файл произошла непредвиденная ошибка']);
+                }
             }
-        } else {
-            getError(['Ошибка выходного файла, произошли следующие ошибки:', 'файл не доступен для записи']);
+            fclose($handle);
         }
-    } catch (Exception $e) {
-        getError([
-            'Ошибка выходного файла, при записи в файл произошла непредвиденная ошибка:',
-            $e
-        ]);
+    } else {
+        getError(['Ошибка выходного файла, произошли следующие ошибки:', 'файл не доступен для записи']);
     }
 }
 
